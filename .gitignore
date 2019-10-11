@@ -5,7 +5,7 @@
 .project
 .settings
 target/
-orientdb/
+orient-db/
 .idea/
 *.class
 *.iml
