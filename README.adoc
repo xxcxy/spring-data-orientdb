@@ -1,0 +1,78 @@
+
+= Spring Data Orientdb
+
+Spring Data Orientdb, A Spring Data Plugin.
+
+The Spring Data Orientdb project aims to provide a familiar and consistent Spring-based programming model for integrating with the Orient Database.
+
+== Features
+
+* Implementation of CRUD methods for Orientdb Entities
+* Implementation of Paging and Sorting
+* Implementation of Transaction
+* Possibility to integrate custom repository code
+* Easy Spring integration with custom namespace
+
+== Getting Started
+
+Here is a quick teaser of an application using Spring Data Repositories in Java:
+
+[source,java]
+----
+public interface PersonRepository extends OrientdbRepository<Person, String> {
+
+  Optional<Person> findById(String pid);
+
+  List<Person> findAll();
+}
+
+@Service
+public class MyService {
+
+  private final PersonRepository repository;
+
+  public MyService(PersonRepository repository) {
+    this.repository = repository;
+  }
+
+  public void doWork() {
+
+    repository.deleteAll();
+
+    Person person = new Person();
+    person.setFirstname("Oliver");
+    person.setLastname("Gierke");
+    repository.save(person);
+
+    Optional<Person> personFromDb = repository.findById(person.getId());
+ }
+}
+
+----
+
+=== Maven configuration
+
+Add the Maven dependency:
+
+This project hasn't upload Maven center repository, so you should build from source before adding this dependency.
+
+[source,xml]
+----
+<dependency>
+  <groupId>io.xxcxy.spring</groupId>
+  <artifactId>spring-data-orientdb</artifactId>
+  <version>1.0.0-SNAPSHOT</version>
+</dependency>
+
+----
+
+== Building from Source
+
+You need JDK 1.8.
+
+[source,bash]
+----
+ $ ./mvnw clean install
+----
+
+If you want to build with the regular `mvn` command, you will need https://maven.apache.org/run-maven/index.html[Maven v3.5.0 or above].

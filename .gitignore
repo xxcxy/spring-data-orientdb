@@ -1,0 +1,16 @@
+.idea/
+*/target/
+*.iml
+.buildpath
+.project
+.settings
+target/
+orientdb/
+.idea/
+*.class
+*.iml
+*.iws
+*.ipr
+*.db
+.DS_Store
+.classpath
