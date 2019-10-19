@@ -22,6 +22,13 @@ public class OrientdbProperties implements IOrientdbConfig {
 
     private boolean autoGenerateSchema;
 
+    private String entityScanPackage;
+
+    @Override
+    public String getEntityScanPackage() {
+        return entityScanPackage;
+    }
+
     @Override
     public String getServerUser() {
         return serverUser;
@@ -79,6 +86,10 @@ public class OrientdbProperties implements IOrientdbConfig {
 
     public void setAutoGenerateSchema(final boolean autoGenerateSchema) {
         this.autoGenerateSchema = autoGenerateSchema;
+    }
+
+    public void setEntityScanPackage(final String entityScanPackage) {
+        this.entityScanPackage = entityScanPackage;
     }
 
     public void setDatabase(final String database) {

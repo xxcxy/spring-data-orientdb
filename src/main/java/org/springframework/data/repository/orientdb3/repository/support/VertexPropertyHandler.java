@@ -15,9 +15,13 @@ import org.springframework.util.StringUtils;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static com.orientechnologies.orient.core.metadata.schema.OType.EMBEDDED;
 import static com.orientechnologies.orient.core.metadata.schema.OType.EMBEDDEDLIST;
@@ -106,17 +110,20 @@ public class VertexPropertyHandler<T> extends PropertyHandler<T> {
                 for (OEdge oEdge : edges) {
                     return convertObjectToJavaProperty(parserHolder, field.getType(), oEdge.getTo());
                 }
-            } else if (oType == EMBEDDEDLIST || oType == EMBEDDEDSET) {
-                try {
-                    Collection collection = (Collection) field.getType().newInstance();
-                    Class gType = (Class) ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[0];
-                    for (OEdge oEdge : edges) {
-                        collection.add(convertObjectToJavaProperty(parserHolder, gType, oEdge.getTo()));
-                    }
-                    return collection;
-                } catch (Exception e) {
-                    throw new EntityConvertException("Collection property must have a no-args constructor");
+            } else if (oType == EMBEDDEDLIST) {
+                List list = new ArrayList();
+                Class gType = (Class) ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[0];
+                for (OEdge oEdge : edges) {
+                    list.add(convertObjectToJavaProperty(parserHolder, gType, oEdge.getTo()));
                 }
+                return list;
+            } else if (oType == EMBEDDEDSET) {
+                Set set = new HashSet();
+                Class gType = (Class) ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[0];
+                for (OEdge oEdge : edges) {
+                    set.add(convertObjectToJavaProperty(parserHolder, gType, oEdge.getTo()));
+                }
+                return set;
             }
         }
         if (oType == EMBEDDED) {
@@ -125,8 +132,8 @@ public class VertexPropertyHandler<T> extends PropertyHandler<T> {
         if (oType == EMBEDDEDMAP) {
             Map<String, Object> map = new HashMap<>();
             Class type = (Class) ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[1];
-            Map<String, OElement> recordMap = oElement.getProperty(getPropertyName());
-            for (Map.Entry<String, OElement> entry : recordMap.entrySet()) {
+            Map<String, Object> recordMap = oElement.getProperty(getPropertyName());
+            for (Map.Entry<String, Object> entry : recordMap.entrySet()) {
                 map.put(entry.getKey(), convertObjectToJavaProperty(parserHolder, type, entry.getValue()));
             }
             return map;

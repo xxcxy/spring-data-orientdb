@@ -39,8 +39,6 @@ public class ElementPropertyHandler<T> extends PropertyHandler<T> {
         super(field);
         this.field = field;
         this.parserHolder = parserHolder;
-        this.oType = getPropertyDbType();
-
         if (field.getAnnotation(Embedded.class) != null) {
             isEmbedded = true;
         } else {
@@ -56,6 +54,9 @@ public class ElementPropertyHandler<T> extends PropertyHandler<T> {
         if (isLink && isEmbedded) {
             throw new EntityInitException("A Entity property must not be both embedded and link");
         }
+
+        // After set isEmbedded or isLink
+        this.oType = getPropertyDbType();
     }
 
 
@@ -94,7 +95,7 @@ public class ElementPropertyHandler<T> extends PropertyHandler<T> {
 
     // Change the field java type to OType using OType.getTypeByClass
     public OType getPropertyDbType() {
-        OType oType = OType.getTypeByClass(field.getType());
+        OType oType = super.getPropertyDbType();
         if (OBJECT_TYPE.containsKey(oType)) {
             if (isEmbedded == true && isLink == false) {
                 return oType;
@@ -112,20 +113,21 @@ public class ElementPropertyHandler<T> extends PropertyHandler<T> {
             return convertObjectToJavaProperty(parserHolder, field.getType(), oElement.getProperty(getPropertyName()));
         }
         // Every element has it's own converter so can't use OType.convert
-        if (oType == LINKLIST || oType == LINKSET) {
-            try {
-                Collection collection = (Collection) field.getType().newInstance();
-                mapToObject(oElement.getProperty(getPropertyName()), o -> collection.add(o));
-                return collection;
-            } catch (Exception e) {
-                throw new EntityConvertException("Collection property must have a no-args constructor");
-            }
+        if (oType == LINKLIST) {
+            List list = new ArrayList();
+            mapToObject(oElement.getProperty(getPropertyName()), o -> list.add(o));
+            return list;
+        }
+        if (oType == LINKSET) {
+            Set set = new HashSet();
+            mapToObject(oElement.getProperty(getPropertyName()), o -> set.add(o));
+            return set;
         }
         if (oType == LINKMAP || oType == EMBEDDEDMAP) {
             Map<String, Object> map = new HashMap<>();
             Class type = (Class) ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[1];
-            Map<String, OElement> recordMap = oElement.getProperty(getPropertyName());
-            for (Map.Entry<String, OElement> entry : recordMap.entrySet()) {
+            Map<String, Object> recordMap = oElement.getProperty(getPropertyName());
+            for (Map.Entry<String, Object> entry : recordMap.entrySet()) {
                 map.put(entry.getKey(), convertObjectToJavaProperty(parserHolder, type, entry.getValue()));
             }
             return map;

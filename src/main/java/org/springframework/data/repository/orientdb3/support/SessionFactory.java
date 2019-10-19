@@ -7,12 +7,18 @@ import com.orientechnologies.orient.core.db.OrientDBConfig;
 import com.orientechnologies.orient.core.metadata.schema.OClass;
 import com.orientechnologies.orient.core.metadata.schema.OProperty;
 import com.orientechnologies.orient.core.metadata.schema.OType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.config.BeanDefinition;
+import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
+import org.springframework.core.type.filter.AnnotationTypeFilter;
 import org.springframework.data.repository.orientdb3.repository.Edge;
 import org.springframework.data.repository.orientdb3.repository.EdgeEntity;
 import org.springframework.data.repository.orientdb3.repository.ElementEntity;
 import org.springframework.data.repository.orientdb3.repository.EntityProperty;
 import org.springframework.data.repository.orientdb3.repository.FromVertex;
 import org.springframework.data.repository.orientdb3.repository.Link;
+import org.springframework.data.repository.orientdb3.repository.OrientdbId;
 import org.springframework.data.repository.orientdb3.repository.ToVertex;
 import org.springframework.data.repository.orientdb3.repository.VertexEntity;
 import org.springframework.data.repository.orientdb3.repository.exception.EntityInitException;
@@ -20,20 +26,26 @@ import org.springframework.lang.Nullable;
 import org.springframework.util.ReflectionUtils;
 
 import java.lang.reflect.Field;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
 
 import static org.springframework.data.repository.orientdb3.repository.util.Constants.OBJECT_TYPE;
+import static org.springframework.data.repository.orientdb3.repository.util.Constants.TYPES_BY_CLASS;
 import static org.springframework.util.StringUtils.capitalize;
 import static org.springframework.util.StringUtils.isEmpty;
 
 public class SessionFactory {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(SessionFactory.class);
+
     private final OrientDB orientDB;
     private final ODatabasePool pool;
     private final boolean autoGenerateSchema;
+    private final String entityScanPackage;
 
     public SessionFactory(final IOrientdbConfig orientdbConfig) {
         orientDB = new OrientDB(orientdbConfig.getUrl(), orientdbConfig.getServerUser(),
@@ -41,18 +53,19 @@ public class SessionFactory {
         pool = new ODatabasePool(orientDB, orientdbConfig.getDatabase(), orientdbConfig.getUserName(),
                 orientdbConfig.getPassword());
         autoGenerateSchema = orientdbConfig.getAutoGenerateSchema();
+        entityScanPackage = orientdbConfig.getEntityScanPackage();
     }
 
     public ODatabaseSession openSession() {
         return pool.acquire();
     }
 
-    public void generateSchema(final List<Class> classes) {
+    public void generateSchema() {
         if (autoGenerateSchema) {
             ODatabaseSession session = pool.acquire();
             Map<String, OClass> processed = new HashMap<>();
             Map<String, Consumer<OClass>> postProcess = new HashMap<>();
-            for (Class clazz : classes) {
+            for (Class clazz : getClasses()) {
                 generateSchema(session, clazz, processed, postProcess);
             }
 
@@ -62,6 +75,24 @@ public class SessionFactory {
             }
             session.close();
         }
+    }
+
+    private List<Class> getClasses() {
+        ClassPathScanningCandidateComponentProvider provider = new ClassPathScanningCandidateComponentProvider(false);
+        provider.addIncludeFilter(new AnnotationTypeFilter(ElementEntity.class));
+        provider.addIncludeFilter(new AnnotationTypeFilter(VertexEntity.class));
+        provider.addIncludeFilter(new AnnotationTypeFilter(EdgeEntity.class));
+        Set<BeanDefinition> beanDefinitionSet = provider.findCandidateComponents(entityScanPackage);
+        List<Class> entityClasses = new ArrayList<>();
+        for (BeanDefinition beanDefinition : beanDefinitionSet) {
+            String beanClassName = beanDefinition.getBeanClassName();
+            try {
+                entityClasses.add(Class.forName(beanClassName));
+            } catch (ClassNotFoundException e) {
+                LOGGER.error("Generate class: {}'s schema error: ", beanClassName, e);
+            }
+        }
+        return entityClasses;
     }
 
     private void generateSchema(final ODatabaseSession session, final Class<?> clazz,
@@ -90,6 +121,9 @@ public class SessionFactory {
             field.setAccessible(true);
             OProperty oProperty = null;
             OType oType = OType.getTypeByClass(field.getType());
+            if (oType == null) {
+                oType = TYPES_BY_CLASS.getOrDefault(field.getType(), OType.EMBEDDED);
+            }
 
             EntityProperty entityProperty = field.getAnnotation(EntityProperty.class);
             String propertyName = getPropertyName(entityProperty, field.getName());
@@ -99,8 +133,10 @@ public class SessionFactory {
                 // edge is not a OClass property but a Edge OClass
                 handleEdgeProperty(session, field.getAnnotation(Edge.class), field, processed);
 
-            } else if (field.getAnnotation(FromVertex.class) != null || field.getAnnotation(ToVertex.class) != null) {
-                // fromVertex and toVertex are not the edgeEntity's property
+            } else if (field.getAnnotation(FromVertex.class) != null
+                    || field.getAnnotation(ToVertex.class) != null
+                    || field.getAnnotation(OrientdbId.class) != null) {
+                // fromVertex, toVertex, ID are not the Entity's property
             } else if (OBJECT_TYPE.containsKey(oType)) {
                 OType actualType = getActualType(oType, field);
                 OClass relateClass = processed.get(getClassName(field.getType()));

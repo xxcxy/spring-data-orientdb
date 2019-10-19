@@ -41,7 +41,7 @@ public class OrientdbEntityInformation<T, ID> implements EntityInformation<T, ID
         this.parserHolder = parserHolder;
         this.entityType = EntityType.getEntityType(domainClass).orElseThrow(() ->
                 new EntityInitException("Entity class must have one of the annotation(ElementEntity," +
-                        " VertexEntity, EdgeEntity"));
+                        " VertexEntity, EdgeEntity)"));
 
         // Get a propertyHandler according to the class annotation
         Function<Field, PropertyHandler<T>> handlerGenerator = getHandlerGenerator(parserHolder);

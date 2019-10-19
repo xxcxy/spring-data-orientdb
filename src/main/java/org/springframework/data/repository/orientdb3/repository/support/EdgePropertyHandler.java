@@ -83,8 +83,8 @@ public class EdgePropertyHandler<T> extends PropertyHandler<T> {
         if (oType == EMBEDDEDMAP) {
             Map<String, Object> map = new HashMap<>();
             Class type = (Class) ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[1];
-            Map<String, OElement> recordMap = oElement.getProperty(getPropertyName());
-            for (Map.Entry<String, OElement> entry : recordMap.entrySet()) {
+            Map<String, Object> recordMap = oElement.getProperty(getPropertyName());
+            for (Map.Entry<String, Object> entry : recordMap.entrySet()) {
                 map.put(entry.getKey(), convertObjectToJavaProperty(parserHolder, type, entry.getValue()));
             }
             return map;

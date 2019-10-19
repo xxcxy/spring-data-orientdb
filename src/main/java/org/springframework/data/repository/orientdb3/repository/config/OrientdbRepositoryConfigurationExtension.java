@@ -17,6 +17,7 @@ import org.springframework.data.repository.orientdb3.repository.VertexEntity;
 import org.springframework.data.repository.orientdb3.repository.support.CollectOrientdbIdParserPostProcessor;
 import org.springframework.data.repository.orientdb3.repository.support.OrientdbIdParserHolder;
 import org.springframework.data.repository.orientdb3.repository.support.OrientdbRepositoryFactoryBean;
+import org.springframework.data.repository.orientdb3.repository.support.SchemaGenerationPostProcessor;
 import org.springframework.data.repository.orientdb3.repository.support.StringIdParser;
 import org.springframework.data.repository.orientdb3.support.SessionFactory;
 import org.springframework.util.StringUtils;
@@ -144,6 +145,9 @@ public class OrientdbRepositoryConfigurationExtension extends RepositoryConfigur
         registerLazyIfNotAlreadyRegistered(
                 () -> new RootBeanDefinition(CollectOrientdbIdParserPostProcessor.class), registry,
                 "collectOrientdbIdParserPostProcessor", source);
+        registerLazyIfNotAlreadyRegistered(
+                () -> new RootBeanDefinition(SchemaGenerationPostProcessor.class), registry,
+                "schemaGenerationPostProcessor", source);
     }
 
 }

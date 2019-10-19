@@ -14,4 +14,6 @@ public interface IOrientdbConfig {
     String getPassword();
 
     boolean getAutoGenerateSchema();
+
+    String getEntityScanPackage();
 }

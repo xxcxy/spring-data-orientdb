@@ -8,6 +8,8 @@ import org.springframework.util.StringUtils;
 
 import java.lang.reflect.Field;
 
+import static org.springframework.data.repository.orientdb3.repository.util.Constants.TYPES_BY_CLASS;
+
 public abstract class PropertyHandler<T> {
     private final Field field;
     private final String propertyName;
@@ -25,16 +27,31 @@ public abstract class PropertyHandler<T> {
 
     protected Object convertObjectTypeProperty(final Class clazz, final Object value, final ODatabaseSession session,
                                                final OrientdbIdParserHolder parserHolder) {
-        return new OrientdbEntityInformation(clazz, parserHolder).convertToORecord(value, session);
+        OType type = getPropertyDbType(clazz);
+        if (type == OType.EMBEDDED) {
+            return new OrientdbEntityInformation(clazz, parserHolder).convertToORecord(value, session);
+        }
+        return value;
     }
 
     protected Object convertObjectToJavaProperty(final OrientdbIdParserHolder parserHolder,
-                                                 final Class clazz, final OElement value) {
-        return new OrientdbEntityInformation(clazz, parserHolder).convertToEntity(value);
+                                                 final Class clazz, final Object value) {
+        if (value instanceof OElement) {
+            return new OrientdbEntityInformation(clazz, parserHolder).convertToEntity((OElement) value);
+        }
+        return value;
     }
 
     public OType getPropertyDbType() {
-        return OType.getTypeByClass(field.getType());
+        return getPropertyDbType(field.getType());
+    }
+
+    private OType getPropertyDbType(final Class clazz) {
+        OType oType = OType.getTypeByClass(clazz);
+        if (oType == null) {
+            oType = TYPES_BY_CLASS.getOrDefault(clazz, OType.EMBEDDED);
+        }
+        return oType;
     }
 
     public abstract Object convertProperty(final OElement oElement, final T entity, final ODatabaseSession session);

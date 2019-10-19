@@ -52,6 +52,11 @@ public class RepositoryTestConfiguration {
             }
 
             @Override
+            public String getEntityScanPackage() {
+                return "org.springframework.data.repository.orientdb3";
+            }
+
+            @Override
             public String getPassword() {
                 return "admin";
             }
