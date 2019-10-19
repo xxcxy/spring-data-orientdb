@@ -47,6 +47,11 @@ public class RepositoryTestConfiguration {
             }
 
             @Override
+            public boolean getAutoGenerateSchema() {
+                return false;
+            }
+
+            @Override
             public String getPassword() {
                 return "admin";
             }

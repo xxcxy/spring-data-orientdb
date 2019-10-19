@@ -1,10 +1,10 @@
 package org.springframework.data.repository.orientdb3.springboot.autoconfigure;
 
-import io.xxcxy.spring.data.orientdb.support.SessionFactory;
-import io.xxcxy.spring.data.orientdb.transaction.OrientdbTransactionManager;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.repository.orientdb3.support.SessionFactory;
+import org.springframework.data.repository.orientdb3.transaction.OrientdbTransactionManager;
 import org.springframework.transaction.PlatformTransactionManager;
 
 @Configuration

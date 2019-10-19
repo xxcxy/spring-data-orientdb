@@ -1,8 +1,8 @@
 package org.springframework.data.repository.orientdb3.springboot.autoconfigure;
 
-import io.xxcxy.spring.data.orientdb.support.IOrientdbConfig;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.repository.orientdb3.support.IOrientdbConfig;
 
 @Configuration("orientdbConfig")
 @ConfigurationProperties(prefix = "spring.data.orientdb")
@@ -19,6 +19,8 @@ public class OrientdbProperties implements IOrientdbConfig {
     private String serverPassword;
 
     private String database;
+
+    private boolean autoGenerateSchema;
 
     @Override
     public String getServerUser() {
@@ -50,6 +52,11 @@ public class OrientdbProperties implements IOrientdbConfig {
         return url;
     }
 
+    @Override
+    public boolean getAutoGenerateSchema() {
+        return autoGenerateSchema;
+    }
+
     public void setUrl(String url) {
         this.url = url;
     }
@@ -68,6 +75,10 @@ public class OrientdbProperties implements IOrientdbConfig {
 
     public void setServerPassword(final String serverPassword) {
         this.serverPassword = serverPassword;
+    }
+
+    public void setAutoGenerateSchema(final boolean autoGenerateSchema) {
+        this.autoGenerateSchema = autoGenerateSchema;
     }
 
     public void setDatabase(final String database) {

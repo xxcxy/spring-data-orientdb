@@ -11,6 +11,7 @@ import org.springframework.data.repository.query.QueryMethodEvaluationContextPro
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
+import java.util.Map;
 import java.util.Optional;
 
 public class OrientdbRepositoryFactory extends RepositoryFactorySupport {

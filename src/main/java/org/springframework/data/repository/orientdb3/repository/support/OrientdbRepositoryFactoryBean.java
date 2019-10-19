@@ -1,12 +1,11 @@
 package org.springframework.data.repository.orientdb3.repository.support;
 
-import io.xxcxy.spring.data.orientdb.support.OrientdbEntityManager;
-import io.xxcxy.spring.data.orientdb.support.SessionFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.repository.Repository;
 import org.springframework.data.repository.core.support.RepositoryFactorySupport;
 import org.springframework.data.repository.core.support.TransactionalRepositoryFactoryBeanSupport;
 import org.springframework.data.repository.orientdb3.support.OrientdbEntityManager;
+import org.springframework.data.repository.orientdb3.support.SessionFactory;
 import org.springframework.util.Assert;
 
 public class OrientdbRepositoryFactoryBean<T extends Repository<S, ID>, S, ID>

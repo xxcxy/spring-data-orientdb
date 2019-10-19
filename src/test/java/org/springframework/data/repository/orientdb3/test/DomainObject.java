@@ -2,7 +2,7 @@ package org.springframework.data.repository.orientdb3.test;
 
 import org.springframework.data.repository.orientdb3.repository.ElementEntity;
 import org.springframework.data.repository.orientdb3.repository.OrientdbId;
-import org.springframework.data.repository.orientdb3.repository.OrientdbProperty;
+import org.springframework.data.repository.orientdb3.repository.EntityProperty;
 import org.springframework.data.repository.orientdb3.test.integration.IdParser.CustId;
 
 @ElementEntity
@@ -13,7 +13,7 @@ public class DomainObject {
 
     private String p1;
 
-    @OrientdbProperty(name = "cp2")
+    @EntityProperty(name = "cp2")
     private String p2;
 
     public DomainObject() {

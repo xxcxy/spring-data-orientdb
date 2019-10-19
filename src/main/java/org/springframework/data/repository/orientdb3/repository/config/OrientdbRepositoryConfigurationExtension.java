@@ -10,8 +10,10 @@ import org.springframework.data.repository.config.AnnotationRepositoryConfigurat
 import org.springframework.data.repository.config.RepositoryConfigurationExtensionSupport;
 import org.springframework.data.repository.config.RepositoryConfigurationSource;
 import org.springframework.data.repository.config.XmlRepositoryConfigurationSource;
+import org.springframework.data.repository.orientdb3.repository.EdgeEntity;
 import org.springframework.data.repository.orientdb3.repository.ElementEntity;
 import org.springframework.data.repository.orientdb3.repository.OrientdbRepository;
+import org.springframework.data.repository.orientdb3.repository.VertexEntity;
 import org.springframework.data.repository.orientdb3.repository.support.CollectOrientdbIdParserPostProcessor;
 import org.springframework.data.repository.orientdb3.repository.support.OrientdbIdParserHolder;
 import org.springframework.data.repository.orientdb3.repository.support.OrientdbRepositoryFactoryBean;
@@ -20,6 +22,7 @@ import org.springframework.data.repository.orientdb3.support.SessionFactory;
 import org.springframework.util.StringUtils;
 
 import java.lang.annotation.Annotation;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Optional;
@@ -68,7 +71,7 @@ public class OrientdbRepositoryConfigurationExtension extends RepositoryConfigur
     @Override
     @SuppressWarnings("unchecked")
     protected Collection<Class<? extends Annotation>> getIdentifyingAnnotations() {
-        return Collections.singletonList(ElementEntity.class);
+        return Arrays.asList(ElementEntity.class, VertexEntity.class, EdgeEntity.class);
     }
 
     /*

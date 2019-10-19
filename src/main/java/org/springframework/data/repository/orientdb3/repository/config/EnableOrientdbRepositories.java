@@ -1,6 +1,5 @@
 package org.springframework.data.repository.orientdb3.repository.config;
 
-import io.xxcxy.spring.data.orientdb.repository.support.OrientdbRepositoryFactoryBean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.repository.config.DefaultRepositoryBaseClass;
@@ -83,7 +82,7 @@ public @interface EnableOrientdbRepositories {
     Class<?> repositoryBaseClass() default DefaultRepositoryBaseClass.class;
 
     /**
-     * Configures the name of the {@link io.xxcxy.spring.data.orientdb.support.SessionFactory} bean definition
+     * Configures the name of the {@link org.springframework.data.repository.orientdb3.support} bean definition
      * to be used to create repositories discovered through this annotation. Defaults to {@code sessionFactory}.
      */
     String sessionFactoryRef() default "sessionFactory";

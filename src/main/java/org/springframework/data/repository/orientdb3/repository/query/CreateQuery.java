@@ -1,7 +1,7 @@
 package org.springframework.data.repository.orientdb3.repository.query;
 
-import io.xxcxy.spring.data.orientdb.support.OrientdbEntityManager;
 import org.springframework.data.repository.core.NamedQueries;
+import org.springframework.data.repository.orientdb3.support.OrientdbEntityManager;
 
 public class CreateQuery extends AbstractQuery {
     public CreateQuery(final OrientdbQueryMethod method, final OrientdbEntityManager em,

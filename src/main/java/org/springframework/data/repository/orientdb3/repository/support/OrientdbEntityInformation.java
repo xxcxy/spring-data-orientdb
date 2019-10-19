@@ -2,61 +2,89 @@ package org.springframework.data.repository.orientdb3.repository.support;
 
 import com.orientechnologies.orient.core.db.ODatabaseSession;
 import com.orientechnologies.orient.core.id.ORID;
-import com.orientechnologies.orient.core.metadata.schema.OType;
 import com.orientechnologies.orient.core.record.OElement;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.orientechnologies.orient.core.record.OVertex;
 import org.springframework.data.repository.core.EntityInformation;
+import org.springframework.data.repository.orientdb3.repository.EdgeEntity;
 import org.springframework.data.repository.orientdb3.repository.ElementEntity;
+import org.springframework.data.repository.orientdb3.repository.FromVertex;
 import org.springframework.data.repository.orientdb3.repository.OrientdbId;
-import org.springframework.data.repository.orientdb3.repository.OrientdbProperty;
+import org.springframework.data.repository.orientdb3.repository.ToVertex;
+import org.springframework.data.repository.orientdb3.repository.VertexEntity;
 import org.springframework.data.repository.orientdb3.repository.exception.EntityConvertException;
 import org.springframework.data.repository.orientdb3.repository.exception.EntityInitException;
 import org.springframework.data.util.Pair;
-import org.springframework.lang.Nullable;
 import org.springframework.util.ReflectionUtils;
 import org.springframework.util.StringUtils;
 
-import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
-
-import static com.orientechnologies.orient.core.metadata.schema.OType.EMBEDDED;
-import static com.orientechnologies.orient.core.metadata.schema.OType.LINK;
+import java.util.function.Function;
 
 public class OrientdbEntityInformation<T, ID> implements EntityInformation<T, ID> {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(OrientdbEntityInformation.class);
-
     private final Class<T> domainClass;
+    private final EntityType entityType;
     private final OrientdbIdParserHolder parserHolder;
     private final String entityName;
     private final List<PropertyHandler> propertyHandlers;
     private Pair<Field, OrientdbIdParser> idInfo;
+    private Field fromField;
+    private Field toField;
 
     public OrientdbEntityInformation(final Class<T> domainClass, final OrientdbIdParserHolder parserHolder) {
         this.domainClass = domainClass;
         this.entityName = getEntityName(domainClass);
         this.propertyHandlers = new ArrayList<>();
         this.parserHolder = parserHolder;
+        this.entityType = EntityType.getEntityType(domainClass).orElseThrow(() ->
+                new EntityInitException("Entity class must have one of the annotation(ElementEntity," +
+                        " VertexEntity, EdgeEntity"));
+
+        // Get a propertyHandler according to the class annotation
+        Function<Field, PropertyHandler<T>> handlerGenerator = getHandlerGenerator(parserHolder);
+
+        // doWithFields will get All fields including fields of superClass
         ReflectionUtils.doWithFields(domainClass, field -> {
             field.setAccessible(true);
-            Annotation[] annotations = field.getAnnotations();
-            Optional<OrientdbId> orientdbId = getOrientdbId(annotations);
-            if (orientdbId.isPresent()) {
+            setFromToField(field);
+
+            // Set idInfo if this field has OrientdbId annotation or set a propertyHandler
+            OrientdbId orientdbId = field.getAnnotation(OrientdbId.class);
+            if (orientdbId != null) {
                 if (idInfo != null) {
-                    throw new EntityInitException("entity cant have two id properties");
+                    throw new EntityInitException("entity can't have two id properties");
                 }
-                idInfo = Pair.of(field, getIdParser(field, orientdbId.get()));
+                idInfo = Pair.of(field, getIdParser(field, orientdbId));
             } else {
                 if (!Modifier.isTransient(field.getModifiers())) {
-                    propertyHandlers.add(new PropertyHandler(field, getOrientdbProperty(annotations)));
+                    propertyHandlers.add(handlerGenerator.apply(field));
                 }
             }
         });
+    }
+
+    private void setFromToField(final Field field) {
+        if (field.getAnnotation(FromVertex.class) != null) {
+            this.fromField = field;
+        } else if (field.getAnnotation(ToVertex.class) != null) {
+            this.toField = field;
+        }
+    }
+
+    private Function<Field, PropertyHandler<T>> getHandlerGenerator(final OrientdbIdParserHolder parserHolder) {
+        switch (entityType) {
+            case ELEMENT:
+                return field -> new ElementPropertyHandler<>(field, parserHolder);
+            case VERTEX:
+                return field -> new VertexPropertyHandler<>(field, parserHolder);
+            case EDGE:
+                return field -> new EdgePropertyHandler<>(field, parserHolder);
+            default:
+                throw new EntityInitException("can't be here");
+        }
     }
 
     private OrientdbIdParser getIdParser(final Field field, final OrientdbId orientdbId) {
@@ -70,33 +98,24 @@ public class OrientdbEntityInformation<T, ID> implements EntityInformation<T, ID
                         orientdbId.parseBy()[0].getSimpleName())));
     }
 
-    private Optional<OrientdbId> getOrientdbId(final Annotation[] annotations) {
-        for (Annotation annotation : annotations) {
-            if (annotation instanceof OrientdbId) {
-                return Optional.of((OrientdbId) annotation);
-            }
-        }
-        return Optional.empty();
-    }
-
-    @Nullable
-    private OrientdbProperty getOrientdbProperty(final Annotation[] annotations) {
-        for (Annotation annotation : annotations) {
-            if (annotation instanceof OrientdbProperty) {
-                return (OrientdbProperty) annotation;
-            }
-        }
-        return null;
-    }
-
     private String getEntityName(final Class<T> domainClass) {
-        try {
-            ElementEntity entityAnnotation = domainClass.getAnnotation(ElementEntity.class);
-            if (!StringUtils.isEmpty(entityAnnotation.name())) {
-                return entityAnnotation.name();
+        if (entityType == EntityType.ELEMENT) {
+            String name = domainClass.getAnnotation(ElementEntity.class).name();
+            if (!StringUtils.isEmpty(name)) {
+                return name;
             }
-        } catch (Exception e) {
-            LOGGER.error("entity class[{}] must have ElementEntity annotation!", domainClass, e);
+        }
+        if (entityType == EntityType.VERTEX) {
+            String name = domainClass.getAnnotation(VertexEntity.class).name();
+            if (!StringUtils.isEmpty(name)) {
+                return name;
+            }
+        }
+        if (entityType == EntityType.EDGE) {
+            String name = domainClass.getAnnotation(EdgeEntity.class).name();
+            if (!StringUtils.isEmpty(name)) {
+                return name;
+            }
         }
         return domainClass.getSimpleName();
     }
@@ -124,19 +143,50 @@ public class OrientdbEntityInformation<T, ID> implements EntityInformation<T, ID
     public OElement convertToORecord(final T entity, final ODatabaseSession session) {
         OElement oElement = newOElement(entity, session);
         for (PropertyHandler propertyHandler : propertyHandlers) {
-            oElement.setProperty(propertyHandler.getPropertyName(), propertyHandler.convertProperty(entity, session),
-                    propertyHandler.getPropertyDbType());
+            Object obj = propertyHandler.convertProperty(oElement, entity, session);
+
+            // the obj is null when the property is edge or fromVertex or toVertex
+            if (obj != null) {
+                oElement.setProperty(propertyHandler.getPropertyName(),
+                        propertyHandler.convertProperty(oElement, entity, session),
+                        propertyHandler.getPropertyDbType());
+            }
         }
         return oElement;
     }
 
     private OElement newOElement(final T entity, final ODatabaseSession session) {
-        // If this entity is an embedded entity, the idInfo will be null
-        if (idInfo == null || isNew(entity)) {
-            return session.newElement(getEntityName());
+        if (isNew(entity)) {
+            switch (entityType) {
+                case ELEMENT:
+                    return session.newElement(getEntityName());
+                case VERTEX:
+                    return session.newVertex(getEntityName());
+                case EDGE:
+                    return session.newEdge(getFromVertex(entity, session), getToVertex(entity, session),
+                            getEntityName());
+                default:
+                    throw new EntityConvertException("can't be here");
+            }
         } else {
             return session.load(convertToORID(getId(entity)), getEntityName());
         }
+    }
+
+    private OVertex getFromVertex(final T entity, final ODatabaseSession session) {
+        if (fromField == null) {
+            throw new EntityConvertException("EdgeEntity must have fromFiled.");
+        }
+        return (OVertex) new OrientdbEntityInformation(fromField.getType(), parserHolder)
+                .convertToORecord(ReflectionUtils.getField(fromField, entity), session);
+    }
+
+    private OVertex getToVertex(final T entity, final ODatabaseSession session) {
+        if (toField == null) {
+            throw new EntityConvertException("EdgeEntity must have toField.");
+        }
+        return (OVertex) new OrientdbEntityInformation(toField.getType(), parserHolder)
+                .convertToORecord(ReflectionUtils.getField(toField, entity), session);
     }
 
     public ORID convertToORID(final ID id) {
@@ -168,65 +218,4 @@ public class OrientdbEntityInformation<T, ID> implements EntityInformation<T, ID
         return entityName;
     }
 
-    private class PropertyHandler {
-
-        private final Field field;
-        private final String propertyName;
-        private final boolean isEmbedded;
-
-        private PropertyHandler(final Field field, @Nullable final OrientdbProperty orientdbProperty) {
-            this.field = field;
-            if (orientdbProperty != null) {
-                isEmbedded = false;
-                if (!StringUtils.isEmpty(orientdbProperty.name())) {
-                    this.propertyName = orientdbProperty.name();
-                } else {
-                    this.propertyName = field.getName();
-                }
-            } else {
-                isEmbedded = true;
-                this.propertyName = field.getName();
-            }
-        }
-
-
-        private Object convertProperty(final T entity, final ODatabaseSession session) {
-            Object value = ReflectionUtils.getField(field, entity);
-            OType oType = getPropertyDbType();
-            if (oType == EMBEDDED || oType == LINK) {
-                return new OrientdbEntityInformation(field.getType(), parserHolder).convertToORecord(value, session);
-            }
-            return value;
-        }
-
-        private String getPropertyName() {
-            return propertyName;
-        }
-
-        // Change the field java type to OType using OType.getTypeByClass
-        private OType getPropertyDbType() {
-            OType oType = OType.getTypeByClass(field.getType());
-            if (!isEmbedded) {
-                if (oType == EMBEDDED) {
-                    return LINK;
-                } else {
-                    LOGGER.error("{} must be embedded", field.getType());
-                }
-            }
-            return oType;
-        }
-
-        private Field getPropertyField() {
-            return field;
-        }
-
-        private Object convertToJavaProperty(final OElement oElement) {
-            OType oType = getPropertyDbType();
-            if (oType == EMBEDDED || oType == LINK) {
-                return new OrientdbEntityInformation(field.getType(), parserHolder)
-                        .convertToEntity(oElement.getProperty(propertyName));
-            }
-            return OType.convert(oElement.getProperty(propertyName), field.getType());
-        }
-    }
 }

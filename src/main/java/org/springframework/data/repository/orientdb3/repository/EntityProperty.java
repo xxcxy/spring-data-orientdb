@@ -7,8 +7,21 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 @Documented
-@Target({ElementType.TYPE})
+@Target({ElementType.FIELD})
 @Retention(RetentionPolicy.RUNTIME)
-public @interface EdgeEntity {
+public @interface EntityProperty {
+
     String name() default "";
+
+    String min() default "";
+
+    String max() default "";
+
+    boolean mandatory() default false;
+
+    boolean readonly() default false;
+
+    boolean notNull() default false;
+
+    String regexp() default "";
 }

@@ -1,7 +1,5 @@
 package org.springframework.data.repository.orientdb3.repository.query;
 
-import io.xxcxy.spring.data.orientdb.repository.Query;
-import io.xxcxy.spring.data.orientdb.support.OrientdbEntityManager;
 import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.data.repository.core.NamedQueries;
 import org.springframework.data.repository.core.RepositoryMetadata;
@@ -46,9 +44,9 @@ public final class OrientdbQueryLookupStrategy {
             return resolveQuery(new OrientdbQueryMethod(method, metadata, factory), em, namedQueries);
         }
 
-        protected abstract RepositoryQuery resolveQuery(final OrientdbQueryMethod method,
-                                                        final OrientdbEntityManager em,
-                                                        final NamedQueries namedQueries);
+        protected abstract AbstractQuery resolveQuery(final OrientdbQueryMethod method,
+                                                      final OrientdbEntityManager em,
+                                                      final NamedQueries namedQueries);
     }
 
     private static class CreateQueryLookupStrategy extends AbstractQueryLookupStrategy {
@@ -58,8 +56,8 @@ public final class OrientdbQueryLookupStrategy {
         }
 
         @Override
-        protected RepositoryQuery resolveQuery(final OrientdbQueryMethod method, final OrientdbEntityManager em,
-                                               final NamedQueries namedQueries) {
+        protected CreateQuery resolveQuery(final OrientdbQueryMethod method, final OrientdbEntityManager em,
+                                           final NamedQueries namedQueries) {
             return new CreateQuery(method, em, namedQueries);
         }
     }
@@ -85,8 +83,8 @@ public final class OrientdbQueryLookupStrategy {
         }
 
         @Override
-        protected RepositoryQuery resolveQuery(final OrientdbQueryMethod method, final OrientdbEntityManager em,
-                                               final NamedQueries namedQueries) {
+        protected DeclaredQuery resolveQuery(final OrientdbQueryMethod method, final OrientdbEntityManager em,
+                                             final NamedQueries namedQueries) {
 
             return new DeclaredQuery(method, em, namedQueries, evaluationContextProvider);
         }
@@ -119,9 +117,9 @@ public final class OrientdbQueryLookupStrategy {
         }
 
         @Override
-        protected RepositoryQuery resolveQuery(final OrientdbQueryMethod method,
-                                               final OrientdbEntityManager em,
-                                               final NamedQueries namedQueries) {
+        protected AbstractQuery resolveQuery(final OrientdbQueryMethod method,
+                                             final OrientdbEntityManager em,
+                                             final NamedQueries namedQueries) {
             try {
                 return lookupStrategy.resolveQuery(method, em, namedQueries);
             } catch (IllegalStateException e) {
