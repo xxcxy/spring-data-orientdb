@@ -10,9 +10,9 @@ public class EdgeObject {
     @OrientdbId
     private String id;
     @FromVertex
-    private VertexTarget reverseTo;
+    private VertexSource source;
     @ToVertex
-    private VertexObject reverseFrom;
+    private VertexTarget target;
     private String type;
     private long length;
 
@@ -20,12 +20,12 @@ public class EdgeObject {
         this.id = id;
     }
 
-    public void setReverseTo(final VertexTarget reverseTo) {
-        this.reverseTo = reverseTo;
+    public void setSource(final VertexSource source) {
+        this.source = source;
     }
 
-    public void setReverseFrom(final VertexObject reverseFrom) {
-        this.reverseFrom = reverseFrom;
+    public void setTarget(final VertexTarget target) {
+        this.target = target;
     }
 
     public void setType(final String type) {
@@ -40,12 +40,12 @@ public class EdgeObject {
         return id;
     }
 
-    public VertexTarget getReverseTo() {
-        return reverseTo;
+    public VertexSource getSource() {
+        return source;
     }
 
-    public VertexObject getReverseFrom() {
-        return reverseFrom;
+    public VertexTarget getTarget() {
+        return target;
     }
 
     public String getType() {

@@ -3,6 +3,7 @@ package org.springframework.data.repository.orientdb3.repository;
 import com.orientechnologies.orient.core.db.ODatabaseType;
 import com.orientechnologies.orient.core.db.OrientDB;
 import com.orientechnologies.orient.core.db.OrientDBConfig;
+import com.orientechnologies.orient.core.exception.OValidationException;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -10,6 +11,9 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.repository.orientdb3.repository.config.EnableOrientdbRepositories;
 import org.springframework.data.repository.orientdb3.repository.support.OrientdbIdParserHolder;
 import org.springframework.data.repository.orientdb3.repository.support.OrientdbRepositoryFactory;
@@ -17,11 +21,17 @@ import org.springframework.data.repository.orientdb3.repository.support.StringId
 import org.springframework.data.repository.orientdb3.support.IOrientdbConfig;
 import org.springframework.data.repository.orientdb3.support.OrientdbEntityManager;
 import org.springframework.data.repository.orientdb3.support.SessionFactory;
+import org.springframework.data.repository.orientdb3.test.sample.ChildrenElement;
 import org.springframework.data.repository.orientdb3.test.sample.EdgeObject;
 import org.springframework.data.repository.orientdb3.test.sample.ElementObject;
 import org.springframework.data.repository.orientdb3.test.sample.SimpleElement;
 import org.springframework.data.repository.orientdb3.test.sample.VertexObject;
+import org.springframework.data.repository.orientdb3.test.sample.VertexSource;
+import org.springframework.data.repository.orientdb3.test.sample.VertexTarget;
+import org.springframework.data.repository.orientdb3.test.sample.repository.ChildrenElementRepository;
+import org.springframework.data.repository.orientdb3.test.sample.repository.EdgeObjectRepository;
 import org.springframework.data.repository.orientdb3.test.sample.repository.ElementObjectRepository;
+import org.springframework.data.repository.orientdb3.test.sample.repository.VertexObjectRepository;
 import org.springframework.data.repository.orientdb3.transaction.OrientdbTransactionManager;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -49,6 +59,7 @@ public class OrientdbRepositoryTest {
     private SessionFactory sessionFactory;
 
     private OrientdbRepository<ElementObject, String> elementRepository;
+    private OrientdbRepository<ChildrenElement, String> childrenRepository;
     private OrientdbRepository<VertexObject, String> vertexRepository;
     private OrientdbRepository<EdgeObject, String> edgeRepository;
 
@@ -56,6 +67,12 @@ public class OrientdbRepositoryTest {
     public void setup() {
         elementRepository = new OrientdbRepositoryFactory(new OrientdbEntityManager(sessionFactory),
                 new OrientdbIdParserHolder(new StringIdParser())).getRepository(ElementObjectRepository.class);
+        childrenRepository = new OrientdbRepositoryFactory(new OrientdbEntityManager(sessionFactory),
+                new OrientdbIdParserHolder(new StringIdParser())).getRepository(ChildrenElementRepository.class);
+        vertexRepository = new OrientdbRepositoryFactory(new OrientdbEntityManager(sessionFactory),
+                new OrientdbIdParserHolder(new StringIdParser())).getRepository(VertexObjectRepository.class);
+        edgeRepository = new OrientdbRepositoryFactory(new OrientdbEntityManager(sessionFactory),
+                new OrientdbIdParserHolder(new StringIdParser())).getRepository(EdgeObjectRepository.class);
     }
 
     @Test
@@ -98,6 +115,114 @@ public class OrientdbRepositoryTest {
         assertThat(elementMap.size(), is(2));
         assertThat(elementMap.get("map1").getValue(), is("map1"));
         assertThat(elementMap.get("map2").getValue(), is("map2"));
+    }
+
+    @Test
+    public void should_insert_vertex_and_find() {
+        VertexTarget vertexTarget = new VertexTarget();
+        vertexTarget.setType("target");
+        VertexObject vertexObject = new VertexObject();
+        vertexObject.setType("fromType");
+        vertexObject.setTarget(vertexTarget);
+
+        vertexRepository.save(vertexObject);
+        VertexObject find = vertexRepository.findById(vertexObject.getId()).get();
+
+        assertThat(find.getType(), is("fromType"));
+
+        // Verify edge
+        assertThat(find.getTarget().getType(), is("target"));
+    }
+
+    @Test
+    public void should_insert_edge_and_find() {
+        VertexSource vertexSource = new VertexSource();
+        vertexSource.setType("source");
+        VertexTarget vertexTarget = new VertexTarget();
+        vertexTarget.setType("target");
+        EdgeObject edgeObject = new EdgeObject();
+        edgeObject.setLength(15L);
+        edgeObject.setSource(vertexSource);
+        edgeObject.setTarget(vertexTarget);
+
+        edgeRepository.save(edgeObject);
+        EdgeObject find = edgeRepository.findById(edgeObject.getId()).get();
+
+        assertThat(find.getLength(), is(15L));
+        assertThat(find.getSource().getType(), is("source"));
+        assertThat(find.getTarget().getType(), is("target"));
+    }
+
+    @Test(expected = OValidationException.class)
+    public void should_insert_error_when_breach_of_constraint() {
+        ElementObject elementObject = new ElementObject();
+        elementObject.setElementList(getListSimpleElement());
+        elementObject.setElementMap(getMapSimpleElement());
+        elementObject.setElementSet(getSetSimpleElement());
+        elementObject.setLength(15);
+        elementObject.setType("stringType");
+        elementObject.setNames(Arrays.asList("name1", "name2"));
+        elementObject.setMaps(getMap());
+        elementObject.setSets(getSetString());
+
+        elementRepository.save(elementObject);
+    }
+
+    @Test
+    public void should_delete_element() {
+        ElementObject elementObject = new ElementObject();
+        elementObject.setElementList(getListSimpleElement());
+        elementObject.setElementMap(getMapSimpleElement());
+        elementObject.setElementSet(getSetSimpleElement());
+        elementObject.setLength(5);
+        elementObject.setType("stringType");
+        elementObject.setNames(Arrays.asList("name1", "name2"));
+        elementObject.setMaps(getMap());
+        elementObject.setSets(getSetString());
+
+        elementRepository.save(elementObject);
+
+        String saveId = elementObject.getId();
+        assertThat(elementRepository.findById(saveId).isPresent(), is(true));
+
+        // Verify delete
+        elementRepository.deleteById(saveId);
+        assertThat(elementRepository.findById(saveId).isPresent(), is(false));
+    }
+
+    @Test
+    public void should_be_inheritance() {
+        ChildrenElement childrenElement = new ChildrenElement();
+        childrenElement.setChildName("childName");
+        childrenElement.setParentName("parentName");
+        childrenRepository.save(childrenElement);
+
+        ChildrenElement find = childrenRepository.findById(childrenElement.getId()).get();
+
+        assertThat(find.getChildName(), is("childName"));
+        // Verify parent property
+        assertThat(find.getParentName(), is("parentName"));
+    }
+
+    @Test
+    public void should_find_two_by_sort() {
+        for (int i = 10; i > 0; i--) {
+            ChildrenElement childrenElement = new ChildrenElement();
+            childrenElement.setChildName(i + "childName");
+            childrenElement.setParentName(i + "parentName");
+            childrenRepository.save(childrenElement);
+        }
+
+        Page<ChildrenElement> childrenElements = childrenRepository.findAll(PageRequest.of(1, 3,
+                Sort.Direction.ASC, "childName"));
+        assertThat(childrenElements.getTotalElements(), is(10L));
+        List<ChildrenElement> content = childrenElements.getContent();
+        assertThat(content.size(), is(3));
+
+        // 10child 1child 2child 3child so get(0) is 3childName
+        assertThat(content.get(0).getChildName(), is("3childName"));
+        assertThat(content.get(1).getChildName(), is("4childName"));
+        assertThat(content.get(2).getChildName(), is("5childName"));
     }
 
     private Set<String> getSetString() {
@@ -153,14 +278,6 @@ public class OrientdbRepositoryTest {
         orientDB.create("repository_test", ODatabaseType.PLOCAL);
         orientDB.close();
     }
-
-//    @AfterClass
-//    public static void teardown() {
-//        OrientDB orientDB = new OrientDB("plocal:orient-db/spring-data-test", OrientDBConfig.defaultConfig());
-//        orientDB.drop("repository_test");
-//        orientDB.close();
-//    }
-
 }
 
 @Configuration
