@@ -1,8 +1,10 @@
 package org.springframework.data.repository.orientdb3.support;
 
 import com.orientechnologies.orient.core.db.ODatabaseSession;
+import com.orientechnologies.orient.core.iterator.ORecordIteratorClass;
 import com.orientechnologies.orient.core.record.OElement;
 import com.orientechnologies.orient.core.record.ORecord;
+import com.orientechnologies.orient.core.record.impl.ODocument;
 import org.springframework.data.repository.orientdb3.repository.query.TypedQuery;
 import org.springframework.data.repository.orientdb3.repository.support.OrientdbEntityInformation;
 import org.springframework.data.repository.orientdb3.transaction.SessionHolder;
@@ -55,8 +57,9 @@ public class OrientdbEntityManager {
     public <T, ID> List<T> findAll(final OrientdbEntityInformation<T, ID> entityInformation) {
         List<T> all = new ArrayList<>();
         withSession(session -> {
-            for (OElement oRecord : session.browseClass(entityInformation.getEntityName())) {
-                all.add(entityInformation.convertToEntity(oRecord));
+            ORecordIteratorClass<ODocument> oc = session.browseClass(entityInformation.getEntityName());
+            while (oc.hasNext()) {
+                all.add(entityInformation.convertToEntity(oc.next()));
             }
         });
         return all;
