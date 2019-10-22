@@ -23,5 +23,7 @@ public @interface EntityProperty {
 
     boolean notNull() default false;
 
+    boolean unique() default false;
+
     String regexp() default "";
 }

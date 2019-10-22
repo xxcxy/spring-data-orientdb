@@ -34,6 +34,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 
+import static com.orientechnologies.orient.core.metadata.schema.OClass.INDEX_TYPE.UNIQUE;
 import static org.springframework.util.StringUtils.capitalize;
 import static org.springframework.util.StringUtils.isEmpty;
 
@@ -43,45 +44,48 @@ public class SessionFactory {
 
     private final OrientDB orientDB;
     private final ODatabasePool pool;
-    private final boolean autoGenerateSchema;
-    private final String entityScanPackage;
+    private final IOrientdbConfig orientdbConfig;
 
     public SessionFactory(final IOrientdbConfig orientdbConfig) {
+        if (orientdbConfig.getAutoGenerateSchema()) {
+            generateSchema(orientdbConfig);
+        }
         orientDB = new OrientDB(orientdbConfig.getUrl(), orientdbConfig.getServerUser(),
                 orientdbConfig.getServerPassword(), OrientDBConfig.defaultConfig());
         pool = new ODatabasePool(orientDB, orientdbConfig.getDatabase(), orientdbConfig.getUserName(),
                 orientdbConfig.getPassword());
-        autoGenerateSchema = orientdbConfig.getAutoGenerateSchema();
-        entityScanPackage = orientdbConfig.getEntityScanPackage();
+        this.orientdbConfig = orientdbConfig;
     }
 
     public ODatabaseSession openSession() {
         return pool.acquire();
     }
 
-    public void generateSchema() {
-        if (autoGenerateSchema) {
-            ODatabaseSession session = pool.acquire();
-            Map<String, OClass> processed = new HashMap<>();
-            Map<String, Consumer<OClass>> postProcess = new HashMap<>();
-            for (Class clazz : getClasses()) {
-                generateSchema(session, clazz, processed, postProcess);
-            }
-
-            // Set relationships if a class was processed before it's relation class.
-            for (String className : postProcess.keySet()) {
-                postProcess.get(className).accept(processed.get(className));
-            }
-            session.close();
+    public void generateSchema(final IOrientdbConfig orientdbConfig) {
+        OrientDB db = new OrientDB(orientdbConfig.getUrl(), orientdbConfig.getServerUser(),
+                orientdbConfig.getServerPassword(), OrientDBConfig.defaultConfig());
+        ODatabaseSession session = db.open(orientdbConfig.getDatabase(), orientdbConfig.getUserName(),
+                orientdbConfig.getPassword());
+        Map<String, OClass> processed = new HashMap<>();
+        Map<String, Consumer<OClass>> postProcess = new HashMap<>();
+        for (Class clazz : getClasses(orientdbConfig.getEntityScanPackage())) {
+            generateSchema(session, clazz, processed, postProcess);
         }
+
+        // Set relationships if a class was processed before it's relation class.
+        for (String className : postProcess.keySet()) {
+            postProcess.get(className).accept(processed.get(className));
+        }
+        session.close();
+        db.close();
     }
 
-    private List<Class> getClasses() {
+    private List<Class> getClasses(final String scanPackage) {
         ClassPathScanningCandidateComponentProvider provider = new ClassPathScanningCandidateComponentProvider(false);
         provider.addIncludeFilter(new AnnotationTypeFilter(ElementEntity.class));
         provider.addIncludeFilter(new AnnotationTypeFilter(VertexEntity.class));
         provider.addIncludeFilter(new AnnotationTypeFilter(EdgeEntity.class));
-        Set<BeanDefinition> beanDefinitionSet = provider.findCandidateComponents(entityScanPackage);
+        Set<BeanDefinition> beanDefinitionSet = provider.findCandidateComponents(scanPackage);
         List<Class> entityClasses = new ArrayList<>();
         for (BeanDefinition beanDefinition : beanDefinitionSet) {
             String beanClassName = beanDefinition.getBeanClassName();
@@ -194,6 +198,9 @@ public class SessionFactory {
             }
             if (!isEmpty(entityProperty.regexp())) {
                 op.setRegexp(entityProperty.regexp());
+            }
+            if (entityProperty.unique()) {
+                op.createIndex(UNIQUE);
             }
             op.setNotNull(entityProperty.notNull());
             op.setMandatory(entityProperty.mandatory());

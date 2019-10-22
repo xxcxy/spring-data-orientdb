@@ -319,7 +319,7 @@ class RepositoryTestConfig {
 
             @Override
             public String getEntityScanPackage() {
-                return "org.springframework.data.repository.orientdb3";
+                return "org.springframework.data.orientdb3.test.sample";
             }
 
             @Override

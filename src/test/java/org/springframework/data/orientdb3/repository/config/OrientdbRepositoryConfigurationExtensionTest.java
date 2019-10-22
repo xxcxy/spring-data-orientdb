@@ -29,7 +29,7 @@ public class OrientdbRepositoryConfigurationExtensionTest {
 
         Iterable<String> names = Arrays.asList(factory.getBeanDefinitionNames());
 
-        assertThat(names, hasItems("collectOrientdbIdParserPostProcessor", "schemaGenerationPostProcessor"));
+        assertThat(names, hasItems("collectOrientdbIdParserPostProcessor"));
     }
 
     @Test
