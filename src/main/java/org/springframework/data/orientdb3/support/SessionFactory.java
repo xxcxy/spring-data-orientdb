@@ -15,6 +15,7 @@ import org.springframework.core.type.filter.AnnotationTypeFilter;
 import org.springframework.data.orientdb3.repository.Edge;
 import org.springframework.data.orientdb3.repository.EdgeEntity;
 import org.springframework.data.orientdb3.repository.ElementEntity;
+import org.springframework.data.orientdb3.repository.Embedded;
 import org.springframework.data.orientdb3.repository.EntityProperty;
 import org.springframework.data.orientdb3.repository.FromVertex;
 import org.springframework.data.orientdb3.repository.Link;
@@ -61,7 +62,7 @@ public class SessionFactory {
         return pool.acquire();
     }
 
-    public void generateSchema(final IOrientdbConfig orientdbConfig) {
+    private void generateSchema(final IOrientdbConfig orientdbConfig) {
         OrientDB db = new OrientDB(orientdbConfig.getUrl(), orientdbConfig.getServerUser(),
                 orientdbConfig.getServerPassword(), OrientDBConfig.defaultConfig());
         ODatabaseSession session = db.open(orientdbConfig.getDatabase(), orientdbConfig.getUserName(),
@@ -131,7 +132,8 @@ public class SessionFactory {
             EntityProperty entityProperty = field.getAnnotation(EntityProperty.class);
             String propertyName = getPropertyName(entityProperty, field.getName());
 
-            if (field.getAnnotation(Edge.class) != null) {
+            if (field.getAnnotation(Edge.class) != null
+                    || (oClass.isVertexType() && field.getAnnotation(Embedded.class) == null)) {
 
                 // edge is not a OClass property but a Edge OClass
                 handleEdgeProperty(session, field.getAnnotation(Edge.class), field, processed);
@@ -171,11 +173,11 @@ public class SessionFactory {
         return oType;
     }
 
-    private void handleEdgeProperty(final ODatabaseSession session, final Edge edge,
+    private void handleEdgeProperty(final ODatabaseSession session, @Nullable final Edge edge,
                                     final Field field, final Map<String, OClass> processed) {
-        String edgeName = edge.name();
-        if (isEmpty(edgeName)) {
-            edgeName = capitalize(field.getName());
+        String edgeName = capitalize(field.getName());
+        if (edge != null && !isEmpty(edge.name())) {
+            edgeName = edge.name();
         }
         if (processed.containsKey(edgeName)) {
             return;

@@ -28,10 +28,12 @@ import org.springframework.data.orientdb3.test.sample.SimpleElement;
 import org.springframework.data.orientdb3.test.sample.VertexObject;
 import org.springframework.data.orientdb3.test.sample.VertexSource;
 import org.springframework.data.orientdb3.test.sample.VertexTarget;
+import org.springframework.data.orientdb3.test.sample.VertexWithEdges;
 import org.springframework.data.orientdb3.test.sample.repository.ChildrenElementRepository;
 import org.springframework.data.orientdb3.test.sample.repository.EdgeObjectRepository;
 import org.springframework.data.orientdb3.test.sample.repository.ElementObjectRepository;
 import org.springframework.data.orientdb3.test.sample.repository.VertexObjectRepository;
+import org.springframework.data.orientdb3.test.sample.repository.VertexWithEdgesRepository;
 import org.springframework.data.orientdb3.transaction.OrientdbTransactionManager;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -48,6 +50,7 @@ import java.util.Set;
 
 import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.assertThat;
 
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -71,6 +74,7 @@ public class OrientdbRepositoryTest {
                 new OrientdbIdParserHolder(new StringIdParser())).getRepository(ChildrenElementRepository.class);
         vertexRepository = new OrientdbRepositoryFactory(new OrientdbEntityManager(sessionFactory),
                 new OrientdbIdParserHolder(new StringIdParser())).getRepository(VertexObjectRepository.class);
+
         edgeRepository = new OrientdbRepositoryFactory(new OrientdbEntityManager(sessionFactory),
                 new OrientdbIdParserHolder(new StringIdParser())).getRepository(EdgeObjectRepository.class);
     }
@@ -135,6 +139,46 @@ public class OrientdbRepositoryTest {
     }
 
     @Test
+    public void should_insert_find_update_and_delete_vertex() {
+        OrientdbRepository<VertexWithEdges, String> vertexWithEdgesRepository =
+                new OrientdbRepositoryFactory(new OrientdbEntityManager(sessionFactory),
+                        new OrientdbIdParserHolder(new StringIdParser()))
+                        .getRepository(VertexWithEdgesRepository.class);
+
+        VertexWithEdges vertex = new VertexWithEdges();
+        vertex.setType("withEdges");
+        vertex.setTargets(Arrays.asList(new VertexTarget(), new VertexTarget(), new VertexTarget()));
+        VertexSource vertexSource = new VertexSource();
+        vertexSource.setType("source");
+        vertex.setSource(vertexSource);
+
+        // Test save and find
+        vertexWithEdgesRepository.save(vertex);
+        String vId = vertex.getId();
+        VertexWithEdges find = vertexWithEdgesRepository.findById(vId).get();
+        assertThat(find.getTargets().size(), is(3));
+        assertThat(find.getType(), is("withEdges"));
+        assertThat(find.getSource().getType(), is("source"));
+
+
+        // Test update
+        find.setType("updateEdges");
+//        find.setSource(null);
+//        List<VertexTarget> vl = find.getTargets();
+//        vl.remove(1);
+//        find.setTargets(vl);
+        vertexWithEdgesRepository.save(find);
+        VertexWithEdges updated = vertexWithEdgesRepository.findById(vId).get();
+        assertThat(updated.getType(), is("updateEdges"));
+//        assertThat(updated.getSource(), nullValue());
+//        assertThat(updated.getTargets().size(), is(2));
+
+        // Test delete
+        vertexWithEdgesRepository.deleteById(vId);
+        assertThat(vertexWithEdgesRepository.findById(vId).isPresent(), is(false));
+    }
+
+    @Test
     public void should_insert_edge_and_find() {
         VertexSource vertexSource = new VertexSource();
         vertexSource.setType("source");
@@ -151,6 +195,57 @@ public class OrientdbRepositoryTest {
         assertThat(find.getLength(), is(15L));
         assertThat(find.getSource().getType(), is("source"));
         assertThat(find.getTarget().getType(), is("target"));
+    }
+
+    @Test
+    public void should_update_edge_property() {
+        VertexSource vertexSource = new VertexSource();
+        vertexSource.setType("source");
+        VertexTarget vertexTarget = new VertexTarget();
+        vertexTarget.setType("target");
+        EdgeObject edgeObject = new EdgeObject();
+        edgeObject.setLength(15L);
+        edgeObject.setType("first");
+        edgeObject.setSource(vertexSource);
+        edgeObject.setTarget(vertexTarget);
+
+        edgeRepository.save(edgeObject);
+        EdgeObject find = edgeRepository.findById(edgeObject.getId()).get();
+
+        assertThat(find.getLength(), is(15L));
+        assertThat(find.getType(), is("first"));
+
+        find.setLength(5L);
+        find.setType("second");
+
+        edgeRepository.save(find);
+        EdgeObject updated = edgeRepository.findById(edgeObject.getId()).get();
+
+        assertThat(updated.getLength(), is(5L));
+        assertThat(updated.getType(), is("second"));
+    }
+
+    @Test
+    public void should_delete_edge() {
+        VertexSource vertexSource = new VertexSource();
+        vertexSource.setType("source");
+        VertexTarget vertexTarget = new VertexTarget();
+        vertexTarget.setType("target");
+        EdgeObject edgeObject = new EdgeObject();
+        edgeObject.setLength(15L);
+        edgeObject.setType("first");
+        edgeObject.setSource(vertexSource);
+        edgeObject.setTarget(vertexTarget);
+
+        edgeRepository.save(edgeObject);
+        String edgeId = edgeObject.getId();
+        EdgeObject find = edgeRepository.findById(edgeId).get();
+
+        assertThat(find, notNullValue());
+
+        edgeRepository.delete(find);
+
+        assertThat(edgeRepository.findById(edgeId).isPresent(), is(false));
     }
 
     @Test(expected = OValidationException.class)
