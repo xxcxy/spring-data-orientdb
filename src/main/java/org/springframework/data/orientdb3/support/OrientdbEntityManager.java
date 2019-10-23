@@ -33,25 +33,35 @@ public class OrientdbEntityManager {
         });
     }
 
-    public <T, ID> void persist(final T entity, final String cluster,
-                                final OrientdbEntityInformation<T, ID> entityInformation) {
-        withSession(session -> {
-            ORecord oRecord = entityInformation.convertToORecord(entity, session);
-            session.save(oRecord, cluster);
-            entityInformation.setId(entity, oRecord.getIdentity());
+    public <T, ID> T persist(final T entity, final String cluster,
+                             final OrientdbEntityInformation<T, ID> entityInformation) {
+        return doWithSession(session -> {
+            if (entity instanceof EntityProxyInterface) {
+                ((EntityProxyInterface) entity).saveOElement(session, cluster);
+                return entity;
+            } else {
+                return entityInformation.saveNew(entity, session, cluster);
+            }
         });
     }
 
-    public <T, ID> void remove(final T entity, final OrientdbEntityInformation<T, ID> entityInformation) {
-        withSession(session -> session.delete(entityInformation.convertToORecord(entity, session)));
+    public <T> void remove(final T entity) {
+        withSession(session -> {
+            if (entity instanceof EntityProxyInterface) {
+                ((EntityProxyInterface) entity).deleteOElement();
+            }
+        });
     }
 
     public <T, ID> T find(final ID oId, final OrientdbEntityInformation<T, ID> entityInformation) {
-        OElement oRecord = doWithSession(session -> session.load(entityInformation.convertToORID(oId)));
-        if (oRecord != null) {
-            return entityInformation.convertToEntity(oRecord);
-        }
-        return null;
+        return doWithSession(session -> {
+            OElement oElement = session.load(entityInformation.convertToORID(oId));
+            if (oElement != null) {
+                return entityInformation.getEntityProxy(oElement);
+            } else {
+                return null;
+            }
+        });
     }
 
     public <T, ID> List<T> findAll(final OrientdbEntityInformation<T, ID> entityInformation) {
@@ -59,7 +69,7 @@ public class OrientdbEntityManager {
         withSession(session -> {
             ORecordIteratorClass<ODocument> oc = session.browseClass(entityInformation.getEntityName());
             while (oc.hasNext()) {
-                all.add(entityInformation.convertToEntity(oc.next()));
+                all.add(entityInformation.getEntityProxy(oc.next()));
             }
         });
         return all;
@@ -70,7 +80,7 @@ public class OrientdbEntityManager {
         List<T> all = new ArrayList<>();
         withSession(session -> {
             for (ORecord oRecord : session.browseCluster(clusterName)) {
-                all.add(entityInformation.convertToEntity(oRecord.getRecord()));
+                all.add(entityInformation.getEntityProxy(oRecord.getRecord()));
             }
         });
         return all;

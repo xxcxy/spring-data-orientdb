@@ -10,7 +10,7 @@ import java.lang.reflect.Field;
 
 import static org.springframework.data.orientdb3.repository.util.Constants.TYPES_BY_CLASS;
 
-public abstract class PropertyHandler<T> {
+public abstract class PropertyHandler {
     private final Field field;
     private final String propertyName;
 
@@ -37,7 +37,7 @@ public abstract class PropertyHandler<T> {
     protected Object convertObjectToJavaProperty(final OrientdbIdParserHolder parserHolder,
                                                  final Class clazz, final Object value) {
         if (value instanceof OElement) {
-            return new OrientdbEntityInformation(clazz, parserHolder).convertToEntity((OElement) value);
+            return new OrientdbEntityInformation(clazz, parserHolder).getEntityProxy((OElement) value);
         }
         return value;
     }
@@ -54,7 +54,8 @@ public abstract class PropertyHandler<T> {
         return oType;
     }
 
-    public abstract Object convertProperty(final OElement oElement, final T entity, final ODatabaseSession session);
+    public abstract void setOElementProperty(final OElement oElement, final Object value,
+                                             final ODatabaseSession session);
 
     public abstract Object convertToJavaProperty(final OElement oElement);
 

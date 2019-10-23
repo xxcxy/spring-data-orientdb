@@ -8,7 +8,6 @@ import org.springframework.data.orientdb3.repository.FromVertex;
 import org.springframework.data.orientdb3.repository.ToVertex;
 import org.springframework.data.orientdb3.repository.exception.EntityConvertException;
 import org.springframework.data.orientdb3.repository.exception.EntityInitException;
-import org.springframework.util.ReflectionUtils;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
@@ -18,7 +17,7 @@ import java.util.Map;
 import static com.orientechnologies.orient.core.metadata.schema.OType.EMBEDDED;
 import static com.orientechnologies.orient.core.metadata.schema.OType.EMBEDDEDMAP;
 
-public class EdgePropertyHandler<T> extends PropertyHandler<T> {
+public class EdgePropertyHandler extends PropertyHandler {
 
     private final Field field;
     private final OrientdbIdParserHolder parserHolder;
@@ -49,26 +48,29 @@ public class EdgePropertyHandler<T> extends PropertyHandler<T> {
         }
     }
 
-    public Object convertProperty(final OElement oElement, final T entity, final ODatabaseSession session) {
-        // set fromVertex and toVertex on oElement init
+    @Override
+    public void setOElementProperty(final OElement oElement, final Object value, final ODatabaseSession session) {
         if (isFrom || isTo) {
-            return null;
+            return;
         }
-        Object value = ReflectionUtils.getField(field, entity);
+        String propertyName = getPropertyName();
+        oElement.removeProperty(propertyName);
         if (value == null) {
-            return null;
+            return;
         }
         if (oType == EMBEDDED) {
-            return convertObjectTypeProperty(field.getType(), value, session, parserHolder);
+            oElement.setProperty(propertyName,
+                    convertObjectTypeProperty(field.getType(), value, session, parserHolder), oType);
         } else if (oType == EMBEDDEDMAP) {
             Map<String, Object> map = new HashMap<>();
             Class type = (Class) ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[1];
             for (Map.Entry<String, Object> entry : ((Map<String, Object>) value).entrySet()) {
                 map.put(entry.getKey(), convertObjectTypeProperty(type, entry.getValue(), session, parserHolder));
             }
-            return map;
+            oElement.setProperty(propertyName, map, oType);
+        } else {
+            oElement.setProperty(propertyName, value, oType);
         }
-        return value;
     }
 
     public Object convertToJavaProperty(final OElement oElement) {

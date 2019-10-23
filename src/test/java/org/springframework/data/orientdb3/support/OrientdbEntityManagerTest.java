@@ -18,7 +18,6 @@ import java.util.List;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.junit.Assert.assertThat;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -56,13 +55,11 @@ public class OrientdbEntityManagerTest {
 
     @Test
     public void should_remove_entity() {
-        Object obj = new Object();
-        OElement record = mock(OElement.class);
-        when(entityInformation.convertToORecord(obj, session)).thenReturn(record);
+        EntityProxyInterface obj = mock(EntityProxyInterface.class);
 
-        entityManager.remove(obj, entityInformation);
+        entityManager.remove(obj);
 
-        verify(session).delete(record);
+        verify(obj).deleteOElement();
     }
 
     @Test
@@ -72,7 +69,7 @@ public class OrientdbEntityManagerTest {
         OElement element = mock(OElement.class);
         when(entityInformation.convertToORID("id")).thenReturn(record);
         when(session.load(record)).thenReturn(element);
-        when(entityInformation.convertToEntity(element)).thenReturn(obj);
+        when(entityInformation.getEntityProxy(element)).thenReturn(obj);
         Object find = entityManager.find("id", entityInformation);
 
         assertThat(find, is(obj));
@@ -85,7 +82,6 @@ public class OrientdbEntityManagerTest {
         when(oi.hasNext()).thenReturn(true, true, true, false);
         when(oi.next()).thenReturn(mock(OElement.class), mock(OElement.class), mock(OElement.class));
         when(session.browseClass("entityName")).thenReturn(oi);
-        when(entityInformation.convertToEntity(any())).thenReturn(new Object());
 
         List list = entityManager.findAll(entityInformation);
         assertThat(list.size(), is(3));

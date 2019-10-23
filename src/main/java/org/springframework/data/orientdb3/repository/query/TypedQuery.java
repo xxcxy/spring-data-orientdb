@@ -17,6 +17,7 @@ public class TypedQuery<T, ID> {
     }
 
     public List<T> getResultList() {
-        return oResultSet.elementStream().map(entityInformation::convertToEntity).collect(Collectors.toList());
+        return oResultSet.elementStream().map(entityInformation::getEntityProxy).collect(Collectors.toList());
     }
+
 }

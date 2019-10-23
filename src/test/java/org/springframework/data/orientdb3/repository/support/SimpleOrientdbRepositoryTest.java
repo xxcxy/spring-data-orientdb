@@ -93,6 +93,6 @@ public class SimpleOrientdbRepositoryTest {
 
         repository.deleteById("id");
 
-        verify(em).remove(obj, entityInformation);
+        verify(em).remove(obj);
     }
 }

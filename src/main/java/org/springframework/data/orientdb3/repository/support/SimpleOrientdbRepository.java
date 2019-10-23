@@ -64,8 +64,7 @@ public class SimpleOrientdbRepository<T, ID> implements OrientdbRepository<T, ID
     @Transactional
     @Override
     public <S extends T> S save(final S s, final String clusterName) {
-        em.persist(s, clusterName, entityInformation);
-        return s;
+        return (S) em.persist(s, clusterName, entityInformation);
     }
 
     @Transactional
@@ -73,10 +72,11 @@ public class SimpleOrientdbRepository<T, ID> implements OrientdbRepository<T, ID
     public <S extends T> List<S> saveAll(final List<S> entities, final String clusterName) {
         Assert.notNull(entities, "entities must not be null!");
 
+        List<S> result = new ArrayList<>();
         for (S entity : entities) {
-            em.persist(entity, clusterName, entityInformation);
+            result.add((S) em.persist(entity, clusterName, entityInformation));
         }
-        return entities;
+        return result;
     }
 
     @Override
@@ -133,7 +133,7 @@ public class SimpleOrientdbRepository<T, ID> implements OrientdbRepository<T, ID
     public void delete(final T entity) {
         Assert.notNull(entity, "Entity must not be null!");
 
-        em.remove(entity, entityInformation);
+        em.remove(entity);
     }
 
     @Transactional

@@ -12,6 +12,8 @@ import org.springframework.data.orientdb3.repository.ToVertex;
 import org.springframework.data.orientdb3.repository.VertexEntity;
 import org.springframework.data.orientdb3.repository.exception.EntityConvertException;
 import org.springframework.data.orientdb3.repository.exception.EntityInitException;
+import org.springframework.data.orientdb3.support.EntityProxy;
+import org.springframework.data.orientdb3.support.EntityProxyInterface;
 import org.springframework.data.repository.core.EntityInformation;
 import org.springframework.data.util.Pair;
 import org.springframework.util.ReflectionUtils;
@@ -19,9 +21,11 @@ import org.springframework.util.StringUtils;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.function.Function;
+
+import static org.springframework.util.ReflectionUtils.getField;
 
 public class OrientdbEntityInformation<T, ID> implements EntityInformation<T, ID> {
 
@@ -29,7 +33,7 @@ public class OrientdbEntityInformation<T, ID> implements EntityInformation<T, ID
     private final EntityType entityType;
     private final OrientdbIdParserHolder parserHolder;
     private final String entityName;
-    private final List<PropertyHandler> propertyHandlers;
+    private final Map<String, PropertyHandler> propertyHandlers;
     private Pair<Field, OrientdbIdParser> idInfo;
     private Field fromField;
     private Field toField;
@@ -37,14 +41,14 @@ public class OrientdbEntityInformation<T, ID> implements EntityInformation<T, ID
     public OrientdbEntityInformation(final Class<T> domainClass, final OrientdbIdParserHolder parserHolder) {
         this.domainClass = domainClass;
         this.entityName = getEntityName(domainClass);
-        this.propertyHandlers = new ArrayList<>();
+        this.propertyHandlers = new HashMap<>();
         this.parserHolder = parserHolder;
         this.entityType = EntityType.getEntityType(domainClass).orElseThrow(() ->
                 new EntityInitException("Entity class must have one of the annotation(ElementEntity," +
                         " VertexEntity, EdgeEntity)"));
 
         // Get a propertyHandler according to the class annotation
-        Function<Field, PropertyHandler<T>> handlerGenerator = getHandlerGenerator(parserHolder);
+        Function<Field, PropertyHandler> handlerGenerator = getHandlerGenerator(parserHolder);
 
         // doWithFields will get All fields including fields of superClass
         ReflectionUtils.doWithFields(domainClass, field -> {
@@ -60,7 +64,7 @@ public class OrientdbEntityInformation<T, ID> implements EntityInformation<T, ID
                 idInfo = Pair.of(field, getIdParser(field, orientdbId));
             } else {
                 if (!Modifier.isTransient(field.getModifiers())) {
-                    propertyHandlers.add(handlerGenerator.apply(field));
+                    propertyHandlers.put(field.getName(), handlerGenerator.apply(field));
                 }
             }
         });
@@ -74,14 +78,14 @@ public class OrientdbEntityInformation<T, ID> implements EntityInformation<T, ID
         }
     }
 
-    private Function<Field, PropertyHandler<T>> getHandlerGenerator(final OrientdbIdParserHolder parserHolder) {
+    private Function<Field, PropertyHandler> getHandlerGenerator(final OrientdbIdParserHolder parserHolder) {
         switch (entityType) {
             case ELEMENT:
-                return field -> new ElementPropertyHandler<>(field, parserHolder);
+                return field -> new ElementPropertyHandler(field, parserHolder);
             case VERTEX:
-                return field -> new VertexPropertyHandler<>(field, parserHolder);
+                return field -> new VertexPropertyHandler(field, parserHolder);
             case EDGE:
-                return field -> new EdgePropertyHandler<>(field, parserHolder);
+                return field -> new EdgePropertyHandler(field, parserHolder);
             default:
                 throw new EntityInitException("can't be here");
         }
@@ -122,12 +126,12 @@ public class OrientdbEntityInformation<T, ID> implements EntityInformation<T, ID
 
     @Override
     public boolean isNew(final T t) {
-        return ReflectionUtils.getField(idInfo.getFirst(), t) == null;
+        return !(t instanceof EntityProxyInterface);
     }
 
     @Override
     public ID getId(final T t) {
-        return (ID) ReflectionUtils.getField(idInfo.getFirst(), t);
+        return (ID) getField(idInfo.getFirst(), t);
     }
 
     @Override
@@ -141,35 +145,52 @@ public class OrientdbEntityInformation<T, ID> implements EntityInformation<T, ID
     }
 
     public OElement convertToORecord(final T entity, final ODatabaseSession session) {
-        OElement oElement = newOElement(entity, session);
-        for (PropertyHandler propertyHandler : propertyHandlers) {
-            Object obj = propertyHandler.convertProperty(oElement, entity, session);
-
-            // the obj is null when the property is edge or fromVertex or toVertex
-            if (obj != null) {
-                oElement.setProperty(propertyHandler.getPropertyName(),
-                        propertyHandler.convertProperty(oElement, entity, session),
-                        propertyHandler.getPropertyDbType());
+        if (entity instanceof EntityProxyInterface) {
+            return ((EntityProxyInterface) entity).saveOElement(session, null);
+        } else {
+            OElement oElement = newOElement(entity, session);
+            for (PropertyHandler propertyHandler : propertyHandlers.values()) {
+                propertyHandler.setOElementProperty(oElement,
+                        getField(propertyHandler.getPropertyField(), entity), session);
             }
+            return oElement;
         }
-        return oElement;
+    }
+
+    public T saveNew(final T entity, final ODatabaseSession session, final String cluster) {
+        OElement oElement = newOElement(entity, session);
+        for (PropertyHandler propertyHandler : propertyHandlers.values()) {
+            propertyHandler.setOElementProperty(oElement,
+                    getField(propertyHandler.getPropertyField(), entity), session);
+        }
+        if (cluster != null) {
+            session.save(oElement, cluster);
+        } else {
+            session.save(oElement);
+        }
+        return (T) new EntityProxy(entity, oElement, this).getProxyInstance();
     }
 
     private OElement newOElement(final T entity, final ODatabaseSession session) {
-        if (isNew(entity)) {
-            switch (entityType) {
-                case ELEMENT:
-                    return session.newElement(getEntityName());
-                case VERTEX:
-                    return session.newVertex(getEntityName());
-                case EDGE:
-                    return session.newEdge(getFromVertex(entity, session), getToVertex(entity, session),
-                            getEntityName());
-                default:
-                    throw new EntityConvertException("can't be here");
-            }
-        } else {
-            return session.load(convertToORID(getId(entity)));
+        switch (entityType) {
+            case ELEMENT:
+                return session.newElement(getEntityName());
+            case VERTEX:
+                return session.newVertex(getEntityName());
+            case EDGE:
+                return session.newEdge(getFromVertex(entity, session), getToVertex(entity, session),
+                        getEntityName());
+            default:
+                throw new EntityConvertException("can't be here");
+        }
+    }
+
+    public T getEntityProxy(final OElement oElement) {
+        try {
+            return new EntityProxy<>(getJavaType().newInstance(), oElement, this)
+                    .getProxyInstance();
+        } catch (Exception e) {
+            throw new EntityConvertException("orientdb entity must have no-argument constructor");
         }
     }
 
@@ -178,7 +199,7 @@ public class OrientdbEntityInformation<T, ID> implements EntityInformation<T, ID
             throw new EntityConvertException("EdgeEntity must have fromFiled.");
         }
         return (OVertex) new OrientdbEntityInformation(fromField.getType(), parserHolder)
-                .convertToORecord(ReflectionUtils.getField(fromField, entity), session);
+                .convertToORecord(getField(fromField, entity), session);
     }
 
     private OVertex getToVertex(final T entity, final ODatabaseSession session) {
@@ -186,7 +207,7 @@ public class OrientdbEntityInformation<T, ID> implements EntityInformation<T, ID
             throw new EntityConvertException("EdgeEntity must have toField.");
         }
         return (OVertex) new OrientdbEntityInformation(toField.getType(), parserHolder)
-                .convertToORecord(ReflectionUtils.getField(toField, entity), session);
+                .convertToORecord(getField(toField, entity), session);
     }
 
     public ORID convertToORID(final ID id) {
@@ -198,24 +219,16 @@ public class OrientdbEntityInformation<T, ID> implements EntityInformation<T, ID
         ReflectionUtils.setField(idInfo.getFirst(), entity, id);
     }
 
-    public T convertToEntity(final OElement oRecord) {
-        try {
-            T entity = domainClass.newInstance();
-            if (idInfo != null) {
-                setId(entity, oRecord.getIdentity());
-            }
-            for (PropertyHandler propertyHandler : propertyHandlers) {
-                ReflectionUtils.setField(propertyHandler.getPropertyField(), entity,
-                        propertyHandler.convertToJavaProperty(oRecord));
-            }
-            return entity;
-        } catch (Exception e) {
-            throw new EntityConvertException("orientdb entity must have no-argument constructor");
-        }
-    }
-
     public String getEntityName() {
         return entityName;
+    }
+
+    public boolean hasFieldName(final String fieldName) {
+        return propertyHandlers.containsKey(fieldName);
+    }
+
+    public PropertyHandler getPropertyHandler(final String fieldName) {
+        return propertyHandlers.get(fieldName);
     }
 
 }
