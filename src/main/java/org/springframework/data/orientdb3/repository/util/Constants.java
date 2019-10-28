@@ -16,6 +16,11 @@ import static com.orientechnologies.orient.core.metadata.schema.OType.LINKLIST;
 import static com.orientechnologies.orient.core.metadata.schema.OType.LINKMAP;
 import static com.orientechnologies.orient.core.metadata.schema.OType.LINKSET;
 
+/**
+ * Helper class to transform type.
+ *
+ * @author xxcxy
+ */
 public abstract class Constants {
     public static final Map<OType, OType> OBJECT_TYPE = new HashMap<>();
     public static final Map<Class, OType> TYPES_BY_CLASS = new HashMap<>();

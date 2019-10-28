@@ -13,6 +13,11 @@ import org.springframework.util.Assert;
 
 import java.lang.reflect.Method;
 
+/**
+ * Query lookup strategy to execute finders.
+ *
+ * @author xxcxy
+ */
 public final class OrientdbQueryLookupStrategy {
 
     /**
@@ -21,6 +26,11 @@ public final class OrientdbQueryLookupStrategy {
     private OrientdbQueryLookupStrategy() {
     }
 
+    /**
+     * Base class for {@link QueryLookupStrategy} implementations.
+     *
+     * @author xxcxy
+     */
     private abstract static class AbstractQueryLookupStrategy implements QueryLookupStrategy {
 
         private final OrientdbEntityManager em;
@@ -49,6 +59,11 @@ public final class OrientdbQueryLookupStrategy {
                                                       final NamedQueries namedQueries);
     }
 
+    /**
+     * {@link QueryLookupStrategy} to create a query from the method name.
+     *
+     * @author xxcxy
+     */
     private static class CreateQueryLookupStrategy extends AbstractQueryLookupStrategy {
 
         public CreateQueryLookupStrategy(final OrientdbEntityManager em) {

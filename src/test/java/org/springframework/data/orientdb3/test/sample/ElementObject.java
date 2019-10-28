@@ -29,6 +29,8 @@ public class ElementObject {
     private Set<SimpleElement> elementSet;
     @Link
     private Map<String, SimpleElement> elementMap;
+    @Embedded
+    private Pojo pojo;
 
     public void setId(final String id) {
         this.id = id;
@@ -96,6 +98,14 @@ public class ElementObject {
 
     public Set<SimpleElement> getElementSet() {
         return elementSet;
+    }
+
+    public Pojo getPojo() {
+        return pojo;
+    }
+
+    public void setPojo(final Pojo pojo) {
+        this.pojo = pojo;
     }
 
     public Map<String, SimpleElement> getElementMap() {

@@ -9,28 +9,28 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Holds a query result.
+ * Holds a command executions result.
  *
  * @author xxcxy
  */
-public class TypedQuery<T, ID> {
+public class TypedCommand<T, ID> {
 
     private final OResultSet oResultSet;
     private final OrientdbEntityInformation<T, ID> entityInformation;
 
     /**
-     * Creates a new {@link TypedQuery}
+     * Creates a new {@link TypedCommand}
      *
      * @param oResultSet
      * @param entityInformation
      */
-    public TypedQuery(final OResultSet oResultSet, final OrientdbEntityInformation<T, ID> entityInformation) {
+    public TypedCommand(final OResultSet oResultSet, final OrientdbEntityInformation<T, ID> entityInformation) {
         this.oResultSet = oResultSet;
         this.entityInformation = entityInformation;
     }
 
     /**
-     * Gets the query result.
+     * Gets the command result.
      *
      * @return
      */

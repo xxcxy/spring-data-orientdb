@@ -16,11 +16,10 @@ import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.stream.Collectors;
 
 import static com.orientechnologies.orient.core.metadata.schema.OType.EMBEDDED;
 import static com.orientechnologies.orient.core.metadata.schema.OType.EMBEDDEDLIST;
@@ -28,6 +27,11 @@ import static com.orientechnologies.orient.core.metadata.schema.OType.EMBEDDEDMA
 import static com.orientechnologies.orient.core.metadata.schema.OType.EMBEDDEDSET;
 import static org.springframework.data.orientdb3.repository.util.Constants.OBJECT_TYPE;
 
+/**
+ * Extension of {@link PropertyHandler} that handle Vertex's property.
+ *
+ * @author xxcxy
+ */
 public class VertexPropertyHandler extends PropertyHandler {
 
     private final Field field;
@@ -36,11 +40,17 @@ public class VertexPropertyHandler extends PropertyHandler {
     private final boolean isEmbedded;
     private final OType oType;
 
+    /**
+     * Creates a new {@link VertexPropertyHandler}.
+     *
+     * @param field
+     * @param parserHolder
+     */
     public VertexPropertyHandler(final Field field, final OrientdbIdParserHolder parserHolder) {
         super(field);
         this.field = field;
         this.parserHolder = parserHolder;
-        this.oType = getPropertyDbType();
+        this.oType = getOrientdbType();
 
 
         if (field.getAnnotation(Embedded.class) != null) {
@@ -60,54 +70,27 @@ public class VertexPropertyHandler extends PropertyHandler {
         }
     }
 
-    // TODO refactor
+    /*
+     * (non-Javadoc)
+     * @see PropertyHandler#setOElementProperty
+     */
     @Override
-    public void setOElementProperty(final OElement oElement, final Object value, final ODatabaseSession session) {
+    public void setOElementProperty(final OElement oElement, final Object value, final ODatabaseSession session,
+                                    final Map<Object, OElement> converted) {
         String propertyName = getPropertyName();
         oElement.removeProperty(propertyName);
         OVertex oVertex = oElement.asVertex().orElseThrow(() -> new EntityConvertException("Must be a OVertex"));
         if (OBJECT_TYPE.containsKey(oType)) {
             if (isEdge) {
-                if (oType == EMBEDDED) {
-                    for (OEdge old : oVertex.getEdges(ODirection.OUT, getEdgeName())) {
-                        old.delete();
-                    }
-                    if (value != null) {
-                        oVertex.addEdge((OVertex) convertObjectTypeProperty(field.getType(),
-                                value, session, parserHolder), getEdgeName());
-                    }
-                } else if (oType == EMBEDDEDLIST || oType == EMBEDDEDSET) {
-                    Class gType = (Class) ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[0];
-                    List<OVertex> newEdge = new ArrayList<>();
-                    if (value != null) {
-                        for (Object obj : (Collection) value) {
-                            newEdge.add((OVertex) convertObjectTypeProperty(gType, obj, session, parserHolder));
-                        }
-                    }
-                    for (OEdge old : oVertex.getEdges(ODirection.OUT, getEdgeName())) {
-                        if (newEdge.contains(old.getTo())) {
-                            newEdge.remove(old.getTo());
-                        } else {
-                            old.delete();
-                        }
-                    }
-                    for (OVertex to : newEdge) {
-                        oVertex.addEdge(to, getEdgeName());
-                    }
-                } else {
-                    throw new EntityConvertException(oType.name() + " type is not support for edge");
-                }
+                setEdgeProperty(oVertex, value, session, converted);
             } else if (value == null) {
                 return;
             } else if (oType == EMBEDDED) {
                 oVertex.setProperty(propertyName,
-                        convertObjectTypeProperty(field.getType(), value, session, parserHolder), oType);
+                        convertToOrientdbProperty(field.getType(), value, session, parserHolder, converted), oType);
             } else if (oType == EMBEDDEDMAP) {
-                Map<String, Object> map = new HashMap<>();
-                Class type = (Class) ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[1];
-                for (Map.Entry<String, Object> entry : ((Map<String, Object>) value).entrySet()) {
-                    map.put(entry.getKey(), convertObjectTypeProperty(type, entry.getValue(), session, parserHolder));
-                }
+                Map<String, Object> map = convertMap((Map) value,
+                        (type, obj) -> convertToOrientdbProperty(type, obj, session, parserHolder, converted));
                 oVertex.setProperty(propertyName, map, oType);
             } else {
                 oVertex.setProperty(propertyName, value, oType);
@@ -117,6 +100,86 @@ public class VertexPropertyHandler extends PropertyHandler {
         }
     }
 
+    /**
+     * Add a edge to the vertex.
+     *
+     * @param oVertex
+     * @param value
+     * @param session
+     * @param converted
+     */
+    private void setEdgeProperty(final OVertex oVertex, final Object value, final ODatabaseSession session,
+                                 final Map<Object, OElement> converted) {
+        String edgeName = getEdgeName();
+        ODirection edgeDirection = getEdgeDirection();
+        if (oType == EMBEDDED) {
+            for (OEdge old : oVertex.getEdges(edgeDirection, edgeName)) {
+                old.delete();
+            }
+            if (value != null) {
+                OVertex diaNode = (OVertex) convertToOrientdbProperty(field.getType(),
+                        value, session, parserHolder, converted);
+                addEdge(oVertex, diaNode, edgeName, edgeDirection);
+            }
+        } else if (oType == EMBEDDEDLIST || oType == EMBEDDEDSET) {
+            List<OVertex> newEdge = getNewEdge(value, session, converted);
+            for (OEdge old : oVertex.getEdges(edgeDirection, edgeName)) {
+                if (newEdge.contains(old.getVertex(edgeDirection.opposite()))) {
+                    newEdge.remove(old.getVertex(edgeDirection.opposite()));
+                } else {
+                    old.delete();
+                }
+            }
+            for (OVertex to : newEdge) {
+                addEdge(oVertex, to, edgeName, edgeDirection);
+            }
+        } else {
+            throw new EntityConvertException(oType.name() + " type is not support for edge");
+        }
+    }
+
+    /**
+     * Converts a object collection to a {@link OVertex} list.
+     *
+     * @param value
+     * @param session
+     * @param converted
+     * @return
+     */
+    private List<OVertex> getNewEdge(final Object value, final ODatabaseSession session,
+                                     final Map<Object, OElement> converted) {
+        if (value == null) {
+            return new ArrayList<>();
+        }
+        Class gType = (Class) ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[0];
+        return ((Collection<Object>) value).stream()
+                .map(obj -> (OVertex) convertToOrientdbProperty(gType, obj, session, parserHolder, converted))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Adds a new {@link OEdge}.
+     *
+     * @param oVertex
+     * @param diaNode
+     * @param edgeName
+     * @param edgeDirection
+     */
+    private void addEdge(final OVertex oVertex, final OVertex diaNode,
+                         final String edgeName, final ODirection edgeDirection) {
+
+        if (edgeDirection == ODirection.OUT) {
+            oVertex.addEdge(diaNode, edgeName);
+        } else {
+            diaNode.addEdge(oVertex, edgeName);
+        }
+    }
+
+    /**
+     * Gets the edge name.
+     *
+     * @return
+     */
     private String getEdgeName() {
         Edge edge = field.getAnnotation(Edge.class);
         String edgeName = edge.name();
@@ -126,41 +189,47 @@ public class VertexPropertyHandler extends PropertyHandler {
         return edgeName;
     }
 
-    public Object convertToJavaProperty(final OElement oElement) {
+    /**
+     * Gets the edge direction.
+     *
+     * @return
+     */
+    private ODirection getEdgeDirection() {
+        Edge edge = field.getAnnotation(Edge.class);
+        if (edge.direction().equals(Edge.INCOMING)) {
+            return ODirection.IN;
+        }
+        return ODirection.OUT;
+    }
+
+    /*
+     * (non-Javadoc)
+     * @see PropertyHandler#getPropertyInJavaType
+     */
+    @Override
+    public Object getPropertyInJavaType(final OElement oElement, final Map<OElement, Object> converted) {
         OVertex oVertex = oElement.asVertex().orElseThrow(() -> new EntityConvertException("Must be a OVertex"));
         if (isEdge) {
-            Iterable<OEdge> edges = oVertex.getEdges(ODirection.OUT, getEdgeName());
+            Iterable<OEdge> edges = oVertex.getEdges(getEdgeDirection(), getEdgeName());
             if (oType == EMBEDDED) {
                 for (OEdge oEdge : edges) {
-                    return convertObjectToJavaProperty(parserHolder, field.getType(), oEdge.getTo());
+                    return convertToJavaProperty(parserHolder, field.getType(), oEdge.getTo(), converted);
                 }
             } else if (oType == EMBEDDEDLIST) {
-                List list = new ArrayList();
-                Class gType = (Class) ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[0];
-                for (OEdge oEdge : edges) {
-                    list.add(convertObjectToJavaProperty(parserHolder, gType, oEdge.getTo()));
-                }
-                return list;
+                return convertCollection(edges, new ArrayList<>(),
+                        (type, obj) -> convertToJavaProperty(parserHolder, type, ((OEdge) obj).getTo(), converted));
             } else if (oType == EMBEDDEDSET) {
-                Set set = new HashSet();
-                Class gType = (Class) ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[0];
-                for (OEdge oEdge : edges) {
-                    set.add(convertObjectToJavaProperty(parserHolder, gType, oEdge.getTo()));
-                }
-                return set;
+                return convertCollection(edges, new HashSet<>(),
+                        (type, obj) -> convertToJavaProperty(parserHolder, type, ((OEdge) obj).getTo(), converted));
             }
         }
         if (oType == EMBEDDED) {
-            return convertObjectToJavaProperty(parserHolder, field.getType(), oElement.getProperty(getPropertyName()));
+            return convertToJavaProperty(parserHolder, field.getType(), oElement.getProperty(getPropertyName()),
+                    converted);
         }
         if (oType == EMBEDDEDMAP) {
-            Map<String, Object> map = new HashMap<>();
-            Class type = (Class) ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[1];
-            Map<String, Object> recordMap = oElement.getProperty(getPropertyName());
-            for (Map.Entry<String, Object> entry : recordMap.entrySet()) {
-                map.put(entry.getKey(), convertObjectToJavaProperty(parserHolder, type, entry.getValue()));
-            }
-            return map;
+            return convertMap(oElement.getProperty(getPropertyName()),
+                    (type, obj) -> convertToJavaProperty(parserHolder, type, obj, converted));
         }
         return OType.convert(oElement.getProperty(getPropertyName()), field.getType());
     }

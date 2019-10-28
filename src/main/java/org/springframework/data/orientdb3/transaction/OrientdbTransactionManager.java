@@ -14,11 +14,21 @@ import org.springframework.transaction.support.DefaultTransactionStatus;
 import org.springframework.transaction.support.ResourceTransactionManager;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
+/**
+ * Orientdb specific generic transaction manager.
+ *
+ * @author xxcxy
+ */
 public class OrientdbTransactionManager extends AbstractPlatformTransactionManager
         implements ResourceTransactionManager, BeanFactoryAware, InitializingBean {
 
     private SessionFactory sessionFactory;
 
+    /**
+     * Creates a new {@link OrientdbTransactionManager}.
+     *
+     * @param sessionFactory
+     */
     public OrientdbTransactionManager(SessionFactory sessionFactory) {
         this.sessionFactory = sessionFactory;
     }
@@ -50,6 +60,10 @@ public class OrientdbTransactionManager extends AbstractPlatformTransactionManag
         }
     }
 
+    /*
+     * (non-Javadoc)
+     * @see AbstractPlatformTransactionManager#afterPropertiesSet()
+     */
     @Override
     public void afterPropertiesSet() {
         if (getSessionFactory() == null) {
@@ -57,11 +71,19 @@ public class OrientdbTransactionManager extends AbstractPlatformTransactionManag
         }
     }
 
+    /*
+     * (non-Javadoc)
+     * @see AbstractPlatformTransactionManager#getResourceFactory()
+     */
     @Override
     public Object getResourceFactory() {
         return getSessionFactory();
     }
 
+    /*
+     * (non-Javadoc)
+     * @see AbstractPlatformTransactionManager#doGetTransaction()
+     */
     @Override
     protected Object doGetTransaction() {
         Object sessionHolder = TransactionSynchronizationManager.getResource(getSessionFactory());
@@ -71,12 +93,20 @@ public class OrientdbTransactionManager extends AbstractPlatformTransactionManag
         return new SessionHolder();
     }
 
+    /*
+     * (non-Javadoc)
+     * @see AbstractPlatformTransactionManager#isExistingTransaction()
+     */
     @Override
     protected boolean isExistingTransaction(Object transaction) {
         SessionHolder sh = (SessionHolder) transaction;
         return sh.getSession() != null && sh.getSession().getTransaction().isActive();
     }
 
+    /*
+     * (non-Javadoc)
+     * @see AbstractPlatformTransactionManager#doBegin()
+     */
     @Override
     protected void doBegin(Object transaction, TransactionDefinition definition) throws TransactionException {
         SessionHolder txObject = (SessionHolder) transaction;
@@ -92,12 +122,20 @@ public class OrientdbTransactionManager extends AbstractPlatformTransactionManag
         session.begin();
     }
 
+    /*
+     * (non-Javadoc)
+     * @see AbstractPlatformTransactionManager#doSuspend()
+     */
     @Override
     protected Object doSuspend(Object transaction) {
         return new SuspendedResourcesHolder((SessionHolder) TransactionSynchronizationManager
                 .unbindResource(getSessionFactory()));
     }
 
+    /*
+     * (non-Javadoc)
+     * @see AbstractPlatformTransactionManager#doResume()
+     */
     @Override
     protected void doResume(Object transaction, Object suspendedResources) {
         SuspendedResourcesHolder resourcesHolder = (SuspendedResourcesHolder) suspendedResources;
@@ -109,23 +147,39 @@ public class OrientdbTransactionManager extends AbstractPlatformTransactionManag
         TransactionSynchronizationManager.bindResource(getSessionFactory(), resourcesHolder.getSessionHolder());
     }
 
+    /*
+     * (non-Javadoc)
+     * @see AbstractPlatformTransactionManager#doCommit()
+     */
     @Override
     protected void doCommit(DefaultTransactionStatus status) {
         SessionHolder txObject = (SessionHolder) status.getTransaction();
         txObject.getSession().commit();
     }
 
+    /*
+     * (non-Javadoc)
+     * @see AbstractPlatformTransactionManager#doRollback()
+     */
     @Override
     protected void doRollback(DefaultTransactionStatus status) {
         SessionHolder txObject = (SessionHolder) status.getTransaction();
         txObject.getSession().rollback();
     }
 
+    /*
+     * (non-Javadoc)
+     * @see AbstractPlatformTransactionManager#doSetRollbackOnly()
+     */
     @Override
     protected void doSetRollbackOnly(DefaultTransactionStatus status) {
         status.setRollbackOnly();
     }
 
+    /*
+     * (non-Javadoc)
+     * @see AbstractPlatformTransactionManager#doCleanupAfterCompletion()
+     */
     @Override
     protected void doCleanupAfterCompletion(Object transaction) {
         SessionHolder txObject = (SessionHolder) transaction;
@@ -140,10 +194,20 @@ public class OrientdbTransactionManager extends AbstractPlatformTransactionManag
 
         private final SessionHolder sessionHolder;
 
+        /**
+         * Creates a new {@link SuspendedResourcesHolder}.
+         *
+         * @param sessionHolder
+         */
         private SuspendedResourcesHolder(SessionHolder sessionHolder) {
             this.sessionHolder = sessionHolder;
         }
 
+        /**
+         * Gets the {@link SessionHolder}.
+         *
+         * @return
+         */
         private SessionHolder getSessionHolder() {
             return this.sessionHolder;
         }

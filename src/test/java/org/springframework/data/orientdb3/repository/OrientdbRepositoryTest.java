@@ -1,45 +1,41 @@
 package org.springframework.data.orientdb3.repository;
 
-import com.orientechnologies.orient.core.db.ODatabaseType;
-import com.orientechnologies.orient.core.db.OrientDB;
-import com.orientechnologies.orient.core.db.OrientDBConfig;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.orientechnologies.orient.core.exception.OValidationException;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
-import org.springframework.data.orientdb3.repository.config.EnableOrientdbRepositories;
 import org.springframework.data.orientdb3.repository.support.OrientdbIdParserHolder;
 import org.springframework.data.orientdb3.repository.support.OrientdbRepositoryFactory;
 import org.springframework.data.orientdb3.repository.support.StringIdParser;
 import org.springframework.data.orientdb3.support.IOrientdbConfig;
 import org.springframework.data.orientdb3.support.OrientdbEntityManager;
-import org.springframework.data.orientdb3.support.SessionFactory;
 import org.springframework.data.orientdb3.test.sample.ChildrenElement;
+import org.springframework.data.orientdb3.test.sample.Country;
 import org.springframework.data.orientdb3.test.sample.EdgeObject;
 import org.springframework.data.orientdb3.test.sample.ElementObject;
+import org.springframework.data.orientdb3.test.sample.Pojo;
 import org.springframework.data.orientdb3.test.sample.SimpleElement;
+import org.springframework.data.orientdb3.test.sample.VertexInterrelatedOne;
+import org.springframework.data.orientdb3.test.sample.VertexInterrelatedTwo;
 import org.springframework.data.orientdb3.test.sample.VertexObject;
 import org.springframework.data.orientdb3.test.sample.VertexSource;
 import org.springframework.data.orientdb3.test.sample.VertexTarget;
 import org.springframework.data.orientdb3.test.sample.VertexWithEdges;
 import org.springframework.data.orientdb3.test.sample.repository.ChildrenElementRepository;
+import org.springframework.data.orientdb3.test.sample.repository.CountryRepository;
 import org.springframework.data.orientdb3.test.sample.repository.EdgeObjectRepository;
 import org.springframework.data.orientdb3.test.sample.repository.ElementObjectRepository;
+import org.springframework.data.orientdb3.test.sample.repository.VertexInterrelatedOneRepository;
 import org.springframework.data.orientdb3.test.sample.repository.VertexObjectRepository;
+import org.springframework.data.orientdb3.test.sample.repository.VertexSourceRepository;
 import org.springframework.data.orientdb3.test.sample.repository.VertexWithEdgesRepository;
-import org.springframework.data.orientdb3.transaction.OrientdbTransactionManager;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.annotation.EnableTransactionManagement;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -48,23 +44,26 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static com.jayway.jsonpath.matchers.JsonPathMatchers.hasJsonPath;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.Matchers.hasSize;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThat;
 
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(classes = RepositoryTestConfig.class)
-@Transactional
-public class OrientdbRepositoryTest {
+@ContextConfiguration(classes = OrientdbRepositoryTest.config.class)
+public class OrientdbRepositoryTest extends RepositoryTestBase {
 
-    @Autowired
-    private SessionFactory sessionFactory;
 
     private OrientdbRepository<ElementObject, String> elementRepository;
     private OrientdbRepository<ChildrenElement, String> childrenRepository;
     private OrientdbRepository<VertexObject, String> vertexRepository;
     private OrientdbRepository<EdgeObject, String> edgeRepository;
+    private OrientdbRepository<VertexWithEdges, String> vertexWithEdgesRepository;
+    private OrientdbRepository<VertexInterrelatedOne, String> oneRepository;
+    private OrientdbRepository<VertexSource, String> vertexSourceRepository;
+    private OrientdbRepository<Country, String> countryRepository;
 
     @Before
     public void setup() {
@@ -74,9 +73,27 @@ public class OrientdbRepositoryTest {
                 new OrientdbIdParserHolder(new StringIdParser())).getRepository(ChildrenElementRepository.class);
         vertexRepository = new OrientdbRepositoryFactory(new OrientdbEntityManager(sessionFactory),
                 new OrientdbIdParserHolder(new StringIdParser())).getRepository(VertexObjectRepository.class);
-
+        vertexWithEdgesRepository = new OrientdbRepositoryFactory(new OrientdbEntityManager(sessionFactory),
+                new OrientdbIdParserHolder(new StringIdParser()))
+                .getRepository(VertexWithEdgesRepository.class);
         edgeRepository = new OrientdbRepositoryFactory(new OrientdbEntityManager(sessionFactory),
                 new OrientdbIdParserHolder(new StringIdParser())).getRepository(EdgeObjectRepository.class);
+        oneRepository = new OrientdbRepositoryFactory(new OrientdbEntityManager(sessionFactory),
+                new OrientdbIdParserHolder(new StringIdParser())).getRepository(VertexInterrelatedOneRepository.class);
+        vertexSourceRepository = new OrientdbRepositoryFactory(new OrientdbEntityManager(sessionFactory),
+                new OrientdbIdParserHolder(new StringIdParser())).getRepository(VertexSourceRepository.class);
+        countryRepository = new OrientdbRepositoryFactory(new OrientdbEntityManager(sessionFactory),
+                new OrientdbIdParserHolder(new StringIdParser())).getRepository(CountryRepository.class);
+    }
+
+    @Test
+    public void should_use_custom_name() {
+        Country country = new Country();
+        country.setName("us");
+        countryRepository.save(country);
+
+        // Test custom name
+        assertThat(getSession().browseClass("Countries").hasNext(), is(true));
     }
 
     @Test
@@ -91,7 +108,7 @@ public class OrientdbRepositoryTest {
         elementObject.setMaps(getMap());
         elementObject.setSets(getSetString());
 
-        elementRepository.save(elementObject);
+        elementObject = elementRepository.save(elementObject);
 
         ElementObject findObject = elementRepository.findById(elementObject.getId()).get();
         assertThat(findObject.getLength(), is(5L));
@@ -122,6 +139,22 @@ public class OrientdbRepositoryTest {
     }
 
     @Test
+    public void should_support_embedded_pojo() {
+        Pojo pojo = new Pojo();
+        pojo.setName("simple object");
+        ElementObject elementObject = new ElementObject();
+        elementObject.setLength(5);
+        elementObject.setType("stringType");
+        elementObject.setPojo(pojo);
+
+        elementObject = elementRepository.save(elementObject);
+
+        ElementObject find = elementRepository.findById(elementObject.getId()).get();
+
+        assertThat(find.getPojo().getName(), is("simple object"));
+    }
+
+    @Test
     public void should_insert_vertex_and_find() {
         VertexTarget vertexTarget = new VertexTarget();
         vertexTarget.setType("target");
@@ -129,53 +162,13 @@ public class OrientdbRepositoryTest {
         vertexObject.setType("fromType");
         vertexObject.setTarget(vertexTarget);
 
-        vertexRepository.save(vertexObject);
+        vertexObject = vertexRepository.save(vertexObject);
         VertexObject find = vertexRepository.findById(vertexObject.getId()).get();
 
         assertThat(find.getType(), is("fromType"));
 
         // Verify edge
         assertThat(find.getTarget().getType(), is("target"));
-    }
-
-    @Test
-    public void should_insert_find_update_and_delete_vertex() {
-        OrientdbRepository<VertexWithEdges, String> vertexWithEdgesRepository =
-                new OrientdbRepositoryFactory(new OrientdbEntityManager(sessionFactory),
-                        new OrientdbIdParserHolder(new StringIdParser()))
-                        .getRepository(VertexWithEdgesRepository.class);
-
-        VertexWithEdges vertex = new VertexWithEdges();
-        vertex.setType("withEdges");
-        vertex.setTargets(Arrays.asList(new VertexTarget(), new VertexTarget(), new VertexTarget()));
-        VertexSource vertexSource = new VertexSource();
-        vertexSource.setType("source");
-        vertex.setSource(vertexSource);
-
-        // Test save and find
-        vertexWithEdgesRepository.save(vertex);
-        String vId = vertex.getId();
-        VertexWithEdges find = vertexWithEdgesRepository.findById(vId).get();
-        assertThat(find.getTargets().size(), is(3));
-        assertThat(find.getType(), is("withEdges"));
-        assertThat(find.getSource().getType(), is("source"));
-
-
-        // Test update
-        find.setType("updateEdges");
-//        find.setSource(null);
-//        List<VertexTarget> vl = find.getTargets();
-//        vl.remove(1);
-//        find.setTargets(vl);
-        vertexWithEdgesRepository.save(find);
-        VertexWithEdges updated = vertexWithEdgesRepository.findById(vId).get();
-        assertThat(updated.getType(), is("updateEdges"));
-//        assertThat(updated.getSource(), nullValue());
-//        assertThat(updated.getTargets().size(), is(2));
-
-        // Test delete
-        vertexWithEdgesRepository.deleteById(vId);
-        assertThat(vertexWithEdgesRepository.findById(vId).isPresent(), is(false));
     }
 
     @Test
@@ -189,7 +182,7 @@ public class OrientdbRepositoryTest {
         edgeObject.setSource(vertexSource);
         edgeObject.setTarget(vertexTarget);
 
-        edgeRepository.save(edgeObject);
+        edgeObject = edgeRepository.save(edgeObject);
         EdgeObject find = edgeRepository.findById(edgeObject.getId()).get();
 
         assertThat(find.getLength(), is(15L));
@@ -198,54 +191,114 @@ public class OrientdbRepositoryTest {
     }
 
     @Test
-    public void should_update_edge_property() {
+    public void should_insert_find_update_and_delete_vertex() {
+        VertexWithEdges vertex = new VertexWithEdges();
+        vertex.setType("withEdges");
+        vertex.setTargets(Arrays.asList(new VertexTarget(), new VertexTarget(), new VertexTarget()));
         VertexSource vertexSource = new VertexSource();
         vertexSource.setType("source");
-        VertexTarget vertexTarget = new VertexTarget();
-        vertexTarget.setType("target");
-        EdgeObject edgeObject = new EdgeObject();
-        edgeObject.setLength(15L);
-        edgeObject.setType("first");
-        edgeObject.setSource(vertexSource);
-        edgeObject.setTarget(vertexTarget);
+        vertex.setSource(vertexSource);
 
-        edgeRepository.save(edgeObject);
-        EdgeObject find = edgeRepository.findById(edgeObject.getId()).get();
+        // Test save and find
+        String vId = vertexWithEdgesRepository.save(vertex).getId();
+        VertexWithEdges find = vertexWithEdgesRepository.findById(vId).get();
+        assertThat(find.getType(), is("withEdges"));
+        assertThat(find.getSource().getType(), is("source"));
+        assertThat(find.getTargets().size(), is(3));
 
-        assertThat(find.getLength(), is(15L));
-        assertThat(find.getType(), is("first"));
+        // Test update
+        find.setType("updateEdges");
 
-        find.setLength(5L);
-        find.setType("second");
+        // Test #11
+        find.getSource().setType("updatedSource");
+        find.getTargets().add(new VertexTarget());
+        vertexWithEdgesRepository.save(find);
+        VertexWithEdges updated = vertexWithEdgesRepository.findById(vId).get();
+        assertThat(updated.getType(), is("updateEdges"));
 
-        edgeRepository.save(find);
-        EdgeObject updated = edgeRepository.findById(edgeObject.getId()).get();
+        // Verify #11
+        assertThat(updated.getSource().getType(), is("updatedSource"));
+        assertThat(updated.getTargets().size(), is(4));
 
-        assertThat(updated.getLength(), is(5L));
-        assertThat(updated.getType(), is("second"));
+        // Test delete
+        vertexWithEdgesRepository.deleteById(vId);
+        assertThat(vertexWithEdgesRepository.findById(vId).isPresent(), is(false));
     }
 
     @Test
-    public void should_delete_edge() {
+    public void should_remove_edge_from_vertex() {
+        VertexWithEdges vertex = new VertexWithEdges();
+        vertex.setType("withEdges");
+        vertex.setTargets(Arrays.asList(new VertexTarget(), new VertexTarget(), new VertexTarget()));
         VertexSource vertexSource = new VertexSource();
         vertexSource.setType("source");
-        VertexTarget vertexTarget = new VertexTarget();
-        vertexTarget.setType("target");
-        EdgeObject edgeObject = new EdgeObject();
-        edgeObject.setLength(15L);
-        edgeObject.setType("first");
-        edgeObject.setSource(vertexSource);
-        edgeObject.setTarget(vertexTarget);
+        vertex.setSource(vertexSource);
 
-        edgeRepository.save(edgeObject);
-        String edgeId = edgeObject.getId();
-        EdgeObject find = edgeRepository.findById(edgeId).get();
+        // Test save and find
+        String vId = vertexWithEdgesRepository.save(vertex).getId();
 
-        assertThat(find, notNullValue());
+        VertexWithEdges find = vertexWithEdgesRepository.findById(vId).get();
+        assertThat(find.getTargets().size(), is(3));
+        assertThat(find.getType(), is("withEdges"));
+        assertThat(find.getSource().getType(), is("source"));
 
-        edgeRepository.delete(find);
+        // Test update and delete edge
+        List<VertexTarget> lv = find.getTargets();
+        lv.remove(0);
+        find.setTargets(lv);
+        VertexSource updateSource = new VertexSource();
+        updateSource.setType("update");
+        find.setSource(updateSource);
 
-        assertThat(edgeRepository.findById(edgeId).isPresent(), is(false));
+        vertexWithEdgesRepository.save(find);
+
+        VertexWithEdges updated = vertexWithEdgesRepository.findById(vId).get();
+        assertThat(updated.getTargets().size(), is(2));
+        assertThat(updated.getSource().getType(), is("update"));
+    }
+
+    @Test
+    public void should_save_and_find_interrelated_vertex() {
+        VertexInterrelatedOne one = new VertexInterrelatedOne();
+        VertexInterrelatedTwo two = new VertexInterrelatedTwo();
+        one.setName("oneName");
+        one.setTwo(two);
+        two.setName("twoName");
+        two.setOne(one);
+
+        // Test save interrelated vertex
+        one = oneRepository.save(one);
+        assertThat(one.getName(), is("oneName"));
+        assertThat(one.getTwo().getName(), is("twoName"));
+        assertThat(one.getTwo().getOne().getName(), is("oneName"));
+
+        assertSame("The one should be the same", one, one.getTwo().getOne());
+
+        // Test find interrelated vertex
+        VertexInterrelatedOne findOne = oneRepository.findById(one.getId()).get();
+        assertThat(findOne.getName(), is("oneName"));
+        assertThat(findOne.getTwo().getName(), is("twoName"));
+        assertThat(findOne.getTwo().getOne().getName(), is("oneName"));
+
+        assertSame("The one should be the same", findOne, findOne.getTwo().getOne());
+    }
+
+    @Test
+    public void should_save_pojo_with_id_not_null() {
+        VertexSource vs = new VertexSource();
+        vs.setType("first");
+
+        String vId = vertexSourceRepository.save(vs).getId();
+
+        // Verify save success
+        assertThat(vertexRepository.findById(vId).get().getType(), is("first"));
+
+        VertexSource update = new VertexSource();
+        update.setId(vId);
+        update.setType("updated");
+        vertexSourceRepository.save(update);
+
+        assertThat(vertexRepository.findById(vId).get().getType(), is("updated"));
     }
 
     @Test(expected = OValidationException.class)
@@ -275,9 +328,7 @@ public class OrientdbRepositoryTest {
         elementObject.setMaps(getMap());
         elementObject.setSets(getSetString());
 
-        elementRepository.save(elementObject);
-
-        String saveId = elementObject.getId();
+        String saveId = elementRepository.save(elementObject).getId();
         assertThat(elementRepository.findById(saveId).isPresent(), is(true));
 
         // Verify delete
@@ -290,7 +341,7 @@ public class OrientdbRepositoryTest {
         ChildrenElement childrenElement = new ChildrenElement();
         childrenElement.setChildName("childName");
         childrenElement.setParentName("parentName");
-        childrenRepository.save(childrenElement);
+        childrenElement = childrenRepository.save(childrenElement);
 
         ChildrenElement find = childrenRepository.findById(childrenElement.getId()).get();
 
@@ -318,6 +369,66 @@ public class OrientdbRepositoryTest {
         assertThat(content.get(0).getChildName(), is("3childName"));
         assertThat(content.get(1).getChildName(), is("4childName"));
         assertThat(content.get(2).getChildName(), is("5childName"));
+    }
+
+    @Test
+    public void should_delete_all() {
+        Country s1 = new Country();
+        s1.setName("s1");
+        Country s2 = new Country();
+        s2.setName("s2");
+        Country s3 = new Country();
+        s3.setName("s3");
+        countryRepository.saveAll(Arrays.asList(s1, s2, s3));
+
+        assertThat(countryRepository.findAll().size(), is(3));
+
+        // Test delete all
+        countryRepository.deleteAll();
+        assertThat(countryRepository.findAll().size(), is(0));
+    }
+
+    @Test
+    public void should_generate_json() throws JsonProcessingException {
+        ElementObject elementObject = new ElementObject();
+        elementObject.setElementList(getListSimpleElement());
+        elementObject.setElementMap(getMapSimpleElement());
+        elementObject.setElementSet(getSetSimpleElement());
+        elementObject.setLength(5);
+        elementObject.setType("stringType");
+        elementObject.setNames(Arrays.asList("name1", "name2"));
+        elementObject.setMaps(getMap());
+        elementObject.setSets(getSetString());
+
+        elementObject = elementRepository.save(elementObject);
+
+        ElementObject findObject = elementRepository.findById(elementObject.getId()).get();
+
+        // Test convert to json
+        ObjectMapper mapper = new ObjectMapper();
+        String json = mapper.writeValueAsString(findObject);
+
+        /*
+        "{\"id\":\"#xx:xx\",\"length\":5,\"type\":\"stringType\"," +
+                "\"names\":[\"name1\",\"name2\"],\"sets\":[\"s1\",\"s2\"],\"maps\":{\"m1\":1,\"m2\":2}," +
+                "\"elementList\":[{\"id\":\"#xx:xx\",\"value\":\"list1\"},{\"id\":\"#xx:xx\",\"value\":\"list2\"}]," +
+                "\"elementSet\":[{\"id\":\"#xx:xx\",\"value\":\"set2\"},{\"id\":\"#xx:xx\",\"value\":\"set1\"}]," +
+                "\"elementMap\":{\"map2\":{\"id\":\"#xx:xx\",\"value\":\"map2\"}," +
+                "\"map1\":{\"id\":\"#xx:xx\",\"value\":\"map1\"}},\"pojo\":null}"));
+       **/
+
+        assertThat(json, hasJsonPath("$.length", equalTo(5)));
+        assertThat(json, hasJsonPath("$.type", equalTo("stringType")));
+        assertThat(json, hasJsonPath("$.names", hasItems("name1", "name2")));
+        assertThat(json, hasJsonPath("$.sets", hasItems("s1", "s2")));
+        assertThat(json, hasJsonPath("$.maps.m1", equalTo(1)));
+        assertThat(json, hasJsonPath("$.maps.m2", equalTo(2)));
+        assertThat(json, hasJsonPath("$.elementList[0].value", equalTo("list1")));
+        assertThat(json, hasJsonPath("$.elementList[1].value", equalTo("list2")));
+        assertThat(json, hasJsonPath("$.elementSet", hasSize(2)));
+        assertThat(json, hasJsonPath("$.elementMap.map2.value", equalTo("map2")));
+        assertThat(json, hasJsonPath("$.elementMap.map1.value", equalTo("map1")));
+
     }
 
     private Set<String> getSetString() {
@@ -364,68 +475,17 @@ public class OrientdbRepositoryTest {
         return maps;
     }
 
+    private static final String DB_HOSTS = "plocal:orient-db/spring-data-test";
+
     @BeforeClass
-    public static void initDb() {
-        OrientDB orientDB = new OrientDB("plocal:orient-db/spring-data-test", OrientDBConfig.defaultConfig());
-        if (orientDB.exists("repository_test")) {
-            orientDB.drop("repository_test");
+    public static void initDB() {
+        RepositoryTestBase.initDb(DB_HOSTS);
+    }
+
+    static class config extends RepositoryTestConfig {
+        @Bean("orientdbConfig")
+        public IOrientdbConfig dbConfig() {
+            return orientdbConfig(DB_HOSTS);
         }
-        orientDB.create("repository_test", ODatabaseType.PLOCAL);
-        orientDB.close();
-    }
-}
-
-@Configuration
-@EnableTransactionManagement
-@EnableOrientdbRepositories
-class RepositoryTestConfig {
-    @Bean("orientdbConfig")
-    public IOrientdbConfig orientdbConfig() {
-        return new IOrientdbConfig() {
-            @Override
-            public String getUrl() {
-                return "plocal:orient-db/spring-data-test";
-            }
-
-            @Override
-            public String getServerUser() {
-                return null;
-            }
-
-            @Override
-            public String getServerPassword() {
-                return null;
-            }
-
-            @Override
-            public String getDatabase() {
-                return "repository_test";
-            }
-
-            @Override
-            public String getUserName() {
-                return "admin";
-            }
-
-            @Override
-            public boolean getAutoGenerateSchema() {
-                return true;
-            }
-
-            @Override
-            public String getEntityScanPackage() {
-                return "org.springframework.data.orientdb3.test.sample";
-            }
-
-            @Override
-            public String getPassword() {
-                return "admin";
-            }
-        };
-    }
-
-    @Bean
-    public PlatformTransactionManager transactionManager(SessionFactory sessionFactory) {
-        return new OrientdbTransactionManager(sessionFactory);
     }
 }

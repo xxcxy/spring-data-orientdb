@@ -14,6 +14,12 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+/**
+ * Annotation to enable orientdb repositories. Will scan the package of the annotated configuration class for Spring Data
+ * repositories by default.
+ *
+ * @author xxcxy
+ */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
@@ -23,8 +29,8 @@ public @interface EnableOrientdbRepositories {
 
     /**
      * Alias for the {@link #basePackages()} attribute. Allows for more concise annotation declarations e.g.:
-     * {@code @EnableExperimentalNeo4jRepositories("org.my.pkg")} instead of
-     * {@code @EnableExperimentalNeo4jRepositories(basePackages="org.my.pkg")}.
+     * {@code @EnableOrientdbRepositories("org.my.pkg")} instead of
+     * {@code @EnableOrientdbRepositories(basePackages="org.my.pkg")}.
      */
     String[] value() default {};
 

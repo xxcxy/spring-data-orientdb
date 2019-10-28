@@ -6,8 +6,11 @@ import org.springframework.beans.factory.support.BeanDefinitionBuilder;
 import org.springframework.beans.factory.support.BeanDefinitionRegistry;
 import org.springframework.beans.factory.support.RootBeanDefinition;
 import org.springframework.core.annotation.AnnotationAttributes;
+import org.springframework.dao.DataAccessException;
+import org.springframework.dao.annotation.PersistenceExceptionTranslationPostProcessor;
 import org.springframework.data.orientdb3.repository.EdgeEntity;
 import org.springframework.data.orientdb3.repository.ElementEntity;
+import org.springframework.data.orientdb3.repository.EmbeddedEntity;
 import org.springframework.data.orientdb3.repository.OrientdbRepository;
 import org.springframework.data.orientdb3.repository.VertexEntity;
 import org.springframework.data.orientdb3.repository.support.CollectOrientdbIdParserPostProcessor;
@@ -27,6 +30,14 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Optional;
 
+/**
+ * Orientdb specific configuration extension parsing custom attributes from the XML namespace and
+ * {@link EnableOrientdbRepositories} annotation.
+ * {@link PersistenceExceptionTranslationPostProcessor} to enable exception translation of persistence specific
+ * exceptions into Spring's {@link DataAccessException} hierarchy.
+ *
+ * @author xxcxy
+ */
 public class OrientdbRepositoryConfigurationExtension extends RepositoryConfigurationExtensionSupport {
 
     /**
@@ -71,7 +82,7 @@ public class OrientdbRepositoryConfigurationExtension extends RepositoryConfigur
     @Override
     @SuppressWarnings("unchecked")
     protected Collection<Class<? extends Annotation>> getIdentifyingAnnotations() {
-        return Arrays.asList(ElementEntity.class, VertexEntity.class, EdgeEntity.class);
+        return Arrays.asList(ElementEntity.class, VertexEntity.class, EdgeEntity.class, EmbeddedEntity.class);
     }
 
     /*

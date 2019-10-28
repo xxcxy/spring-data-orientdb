@@ -9,15 +9,10 @@ import org.springframework.data.orientdb3.repository.exception.EntityConvertExce
 import org.springframework.data.orientdb3.repository.exception.EntityInitException;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.ParameterizedType;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.function.Consumer;
 
 import static com.orientechnologies.orient.core.metadata.schema.OType.EMBEDDED;
 import static com.orientechnologies.orient.core.metadata.schema.OType.EMBEDDEDMAP;
@@ -27,6 +22,11 @@ import static com.orientechnologies.orient.core.metadata.schema.OType.LINKMAP;
 import static com.orientechnologies.orient.core.metadata.schema.OType.LINKSET;
 import static org.springframework.data.orientdb3.repository.util.Constants.OBJECT_TYPE;
 
+/**
+ * Extension of {@link PropertyHandler} that handle Entity's property.
+ *
+ * @author xxcxy
+ */
 public class ElementPropertyHandler extends PropertyHandler {
     private final Field field;
     private final OrientdbIdParserHolder parserHolder;
@@ -55,51 +55,49 @@ public class ElementPropertyHandler extends PropertyHandler {
         }
 
         // After set isEmbedded or isLink
-        this.oType = getPropertyDbType();
+        this.oType = getOrientdbType();
     }
 
-    public void setOElementProperty(final OElement oElement, final Object value, final ODatabaseSession session) {
+    /*
+     * (non-Javadoc)
+     * @see PropertyHandler#setOElementProperty
+     */
+    @Override
+    public void setOElementProperty(final OElement oElement, final Object value, final ODatabaseSession session,
+                                    final Map<Object, OElement> converted) {
         String propertyName = getPropertyName();
         oElement.removeProperty(propertyName);
         if (value == null) {
             return;
         }
         if (oType == EMBEDDED || oType == LINK) {
-            oElement.setProperty(propertyName, convertObjectTypeProperty(field.getType(),
-                    value, session, parserHolder));
+            oElement.setProperty(propertyName, convertToOrientdbProperty(field.getType(),
+                    value, session, parserHolder, converted));
         } else if (oType == LINKLIST) {
-            List list = new ArrayList();
-            mapToRecord((Collection) value, session, o -> list.add(o));
-
+            Collection list = convertCollection((Collection) value, new ArrayList<>(),
+                    (type, obj) -> convertToOrientdbProperty(type, obj, session, parserHolder, converted));
             oElement.setProperty(propertyName, list, oType);
         } else if (oType == LINKSET) {
-            Set set = new HashSet();
-            mapToRecord((Collection) value, session, o -> set.add(o));
-
+            Collection set = convertCollection((Collection) value, new HashSet<>(),
+                    (type, obj) -> convertToOrientdbProperty(type, obj, session, parserHolder, converted));
             oElement.setProperty(propertyName, set, oType);
         } else if (oType == LINKMAP || oType == EMBEDDEDMAP) {
-            Map<String, Object> map = new HashMap<>();
-            Class type = (Class) ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[1];
-            for (Map.Entry<String, Object> entry : ((Map<String, Object>) value).entrySet()) {
-                map.put(entry.getKey(), convertObjectTypeProperty(type, entry.getValue(), session, parserHolder));
-            }
-
+            Map<String, Object> map = convertMap((Map) value,
+                    (type, obj) -> convertToOrientdbProperty(type, obj, session, parserHolder, converted));
             oElement.setProperty(propertyName, map, oType);
         } else {
             oElement.setProperty(propertyName, value, oType);
         }
     }
 
-    private void mapToRecord(final Collection collection, final ODatabaseSession session, final Consumer consumer) {
-        Class type = (Class) ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[0];
-        for (Object ele : collection) {
-            consumer.accept(convertObjectTypeProperty(type, ele, session, parserHolder));
-        }
-    }
 
-    // Change the field java type to OType using OType.getTypeByClass
-    public OType getPropertyDbType() {
-        OType oType = super.getPropertyDbType();
+    /**
+     * Changes the field java type to OType using OType.getTypeByClass
+     *
+     * @return
+     */
+    public OType getOrientdbType() {
+        OType oType = super.getOrientdbType();
         if (OBJECT_TYPE.containsKey(oType)) {
             if (isEmbedded == true && isLink == false) {
                 return oType;
@@ -112,37 +110,30 @@ public class ElementPropertyHandler extends PropertyHandler {
         return oType;
     }
 
-    public Object convertToJavaProperty(final OElement oElement) {
+    /*
+     * (non-Javadoc)
+     * @see PropertyHandler#getPropertyInJavaType
+     */
+    public Object getPropertyInJavaType(final OElement oElement, final Map<OElement, Object> converted) {
         if (oType == EMBEDDED || oType == LINK) {
-            return convertObjectToJavaProperty(parserHolder, field.getType(), oElement.getProperty(getPropertyName()));
+            return convertToJavaProperty(parserHolder, field.getType(),
+                    oElement.getProperty(getPropertyName()), converted);
         }
         // Every element has it's own converter so can't use OType.convert
         if (oType == LINKLIST) {
-            List list = new ArrayList();
-            mapToObject(oElement.getProperty(getPropertyName()), o -> list.add(o));
-            return list;
+            return convertCollection(oElement.getProperty(getPropertyName()), new ArrayList(),
+                    (type, obj) -> convertToJavaProperty(parserHolder, type, obj, converted));
         }
         if (oType == LINKSET) {
-            Set set = new HashSet();
-            mapToObject(oElement.getProperty(getPropertyName()), o -> set.add(o));
-            return set;
+            return convertCollection(oElement.getProperty(getPropertyName()), new HashSet<>(),
+                    (type, obj) -> convertToJavaProperty(parserHolder, type, obj, converted));
         }
         if (oType == LINKMAP || oType == EMBEDDEDMAP) {
-            Map<String, Object> map = new HashMap<>();
-            Class type = (Class) ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[1];
-            Map<String, Object> recordMap = oElement.getProperty(getPropertyName());
-            for (Map.Entry<String, Object> entry : recordMap.entrySet()) {
-                map.put(entry.getKey(), convertObjectToJavaProperty(parserHolder, type, entry.getValue()));
-            }
-            return map;
+            return convertMap(oElement.getProperty(getPropertyName()),
+                    (type, obj) -> convertToJavaProperty(parserHolder, type, obj, converted));
         }
         return OType.convert(oElement.getProperty(getPropertyName()), field.getType());
     }
 
-    private void mapToObject(final Collection<OElement> collection, final Consumer consumer) {
-        Class type = (Class) ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[0];
-        for (OElement ele : collection) {
-            consumer.accept(convertObjectToJavaProperty(parserHolder, type, ele));
-        }
-    }
+
 }

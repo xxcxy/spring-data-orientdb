@@ -13,12 +13,22 @@ import org.springframework.util.Assert;
 
 import java.util.Optional;
 
+/**
+ * Orientdb specific generic repository factory.
+ *
+ * @author xxcxy
+ */
 public class OrientdbRepositoryFactory extends RepositoryFactorySupport {
 
     private final OrientdbEntityManager entityManager;
     private final OrientdbIdParserHolder orientdbIdParserHolder;
 
-
+    /**
+     * Creates a new {@link OrientdbRepositoryFactory}.
+     *
+     * @param entityManager
+     * @param orientdbIdParserHolder
+     */
     public OrientdbRepositoryFactory(final OrientdbEntityManager entityManager,
                                      final OrientdbIdParserHolder orientdbIdParserHolder) {
         Assert.notNull(entityManager, "EntityManager must not be null!");

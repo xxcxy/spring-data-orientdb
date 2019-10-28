@@ -10,13 +10,16 @@ import org.springframework.data.orientdb3.repository.exception.EntityConvertExce
 import org.springframework.data.orientdb3.repository.exception.EntityInitException;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.ParameterizedType;
-import java.util.HashMap;
 import java.util.Map;
 
 import static com.orientechnologies.orient.core.metadata.schema.OType.EMBEDDED;
 import static com.orientechnologies.orient.core.metadata.schema.OType.EMBEDDEDMAP;
 
+/**
+ * Extension of {@link PropertyHandler} that handle Edge's property.
+ *
+ * @author xxcxy
+ */
 public class EdgePropertyHandler extends PropertyHandler {
 
     private final Field field;
@@ -25,11 +28,17 @@ public class EdgePropertyHandler extends PropertyHandler {
     private final boolean isTo;
     private final OType oType;
 
+    /**
+     * Creates a new {@link EdgePropertyHandler}
+     *
+     * @param field
+     * @param parserHolder
+     */
     public EdgePropertyHandler(final Field field, final OrientdbIdParserHolder parserHolder) {
         super(field);
         this.field = field;
         this.parserHolder = parserHolder;
-        this.oType = getPropertyDbType();
+        this.oType = getOrientdbType();
 
         if (field.getAnnotation(FromVertex.class) != null) {
             isFrom = true;
@@ -48,8 +57,13 @@ public class EdgePropertyHandler extends PropertyHandler {
         }
     }
 
+    /*
+     * (non-Javadoc)
+     * @see PropertyHandler#setOElementProperty
+     */
     @Override
-    public void setOElementProperty(final OElement oElement, final Object value, final ODatabaseSession session) {
+    public void setOElementProperty(final OElement oElement, final Object value, final ODatabaseSession session,
+                                    final Map<Object, OElement> converted) {
         if (isFrom || isTo) {
             return;
         }
@@ -60,39 +74,37 @@ public class EdgePropertyHandler extends PropertyHandler {
         }
         if (oType == EMBEDDED) {
             oElement.setProperty(propertyName,
-                    convertObjectTypeProperty(field.getType(), value, session, parserHolder), oType);
+                    convertToOrientdbProperty(field.getType(), value, session, parserHolder, converted), oType);
         } else if (oType == EMBEDDEDMAP) {
-            Map<String, Object> map = new HashMap<>();
-            Class type = (Class) ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[1];
-            for (Map.Entry<String, Object> entry : ((Map<String, Object>) value).entrySet()) {
-                map.put(entry.getKey(), convertObjectTypeProperty(type, entry.getValue(), session, parserHolder));
-            }
+            Map<String, Object> map = convertMap((Map) value,
+                    (type, obj) -> convertToOrientdbProperty(type, obj, session, parserHolder, converted));
             oElement.setProperty(propertyName, map, oType);
         } else {
             oElement.setProperty(propertyName, value, oType);
         }
     }
 
-    public Object convertToJavaProperty(final OElement oElement) {
+    /*
+     * (non-Javadoc)
+     * @see PropertyHandler#getPropertyInJavaType
+     */
+    @Override
+    public Object getPropertyInJavaType(final OElement oElement, final Map<OElement, Object> converted) {
         if (isFrom) {
             OEdge oEdge = oElement.asEdge().orElseThrow(() -> new EntityConvertException("Must be a OEdge"));
-            return convertObjectToJavaProperty(parserHolder, field.getType(), oEdge.getFrom());
+            return convertToJavaProperty(parserHolder, field.getType(), oEdge.getFrom(), converted);
         }
         if (isTo) {
             OEdge oEdge = oElement.asEdge().orElseThrow(() -> new EntityConvertException("Must be a OEdge"));
-            return convertObjectToJavaProperty(parserHolder, field.getType(), oEdge.getTo());
+            return convertToJavaProperty(parserHolder, field.getType(), oEdge.getTo(), converted);
         }
         if (oType == EMBEDDED) {
-            return convertObjectToJavaProperty(parserHolder, field.getType(), oElement.getProperty(getPropertyName()));
+            return convertToJavaProperty(parserHolder, field.getType(),
+                    oElement.getProperty(getPropertyName()), converted);
         }
         if (oType == EMBEDDEDMAP) {
-            Map<String, Object> map = new HashMap<>();
-            Class type = (Class) ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[1];
-            Map<String, Object> recordMap = oElement.getProperty(getPropertyName());
-            for (Map.Entry<String, Object> entry : recordMap.entrySet()) {
-                map.put(entry.getKey(), convertObjectToJavaProperty(parserHolder, type, entry.getValue()));
-            }
-            return map;
+            return convertMap(oElement.getProperty(getPropertyName()),
+                    (type, obj) -> convertToJavaProperty(parserHolder, type, obj, converted));
         }
         return OType.convert(oElement.getProperty(getPropertyName()), field.getType());
     }

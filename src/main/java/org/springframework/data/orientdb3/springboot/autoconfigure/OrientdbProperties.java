@@ -4,88 +4,165 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.orientdb3.support.IOrientdbConfig;
 
+/**
+ * Special adapter for Springboot.
+ *
+ * @author xxcxy
+ */
 @Configuration("orientdbConfig")
-@ConfigurationProperties(prefix = "spring.data.orientdb")
+@ConfigurationProperties(prefix = "spring.data.orientdb3")
 public class OrientdbProperties implements IOrientdbConfig {
 
-    private String url;
-    private String userName;
+    private String hosts;
+    private String username;
     private String password;
-    private String serverUser;
-    private String serverPassword;
-    private String database;
+    private String databaseUsername;
+    private String databasePassword;
+    private String databaseName;
     private boolean autoGenerateSchema;
     private String entityScanPackage;
 
+    /*
+     * (non-Javadoc)
+     * @see IOrientdbConfig#getEntityScanPackage()
+     */
     @Override
     public String getEntityScanPackage() {
         return entityScanPackage;
     }
 
+    /*
+     * (non-Javadoc)
+     * @see IOrientdbConfig#getDatabaseUsername()
+     */
     @Override
-    public String getServerUser() {
-        return serverUser;
+    public String getDatabaseUsername() {
+        return databaseUsername;
     }
 
+    /*
+     * (non-Javadoc)
+     * @see IOrientdbConfig#getDatabasePassword()
+     */
     @Override
-    public String getServerPassword() {
-        return serverPassword;
+    public String getDatabasePassword() {
+        return databasePassword;
     }
 
+    /*
+     * (non-Javadoc)
+     * @see IOrientdbConfig#getDatabaseName()
+     */
     @Override
-    public String getDatabase() {
-        return database;
+    public String getDatabaseName() {
+        return databaseName;
     }
 
+    /*
+     * (non-Javadoc)
+     * @see IOrientdbConfig#getUsername()
+     */
     @Override
-    public String getUserName() {
-        return userName;
+    public String getUsername() {
+        return username;
     }
 
+    /*
+     * (non-Javadoc)
+     * @see IOrientdbConfig#getPassword()
+     */
     @Override
     public String getPassword() {
         return password;
     }
 
+    /*
+     * (non-Javadoc)
+     * @see IOrientdbConfig#getHosts()
+     */
     @Override
-    public String getUrl() {
-        return url;
+    public String getHosts() {
+        return hosts;
     }
 
+    /*
+     * (non-Javadoc)
+     * @see IOrientdbConfig#getAutoGenerateSchema()
+     */
     @Override
     public boolean getAutoGenerateSchema() {
         return autoGenerateSchema;
     }
 
-    public void setUrl(String url) {
-        this.url = url;
+    /**
+     * Sets hosts.
+     *
+     * @param hosts
+     */
+    public void setHosts(final String hosts) {
+        this.hosts = hosts;
     }
 
-    public void setUserName(final String userName) {
-        this.userName = userName;
+    /**
+     * Sets user name.
+     *
+     * @param username
+     */
+    public void setUsername(final String username) {
+        this.username = username;
     }
 
+    /**
+     * Sets password.
+     *
+     * @param password
+     */
     public void setPassword(final String password) {
         this.password = password;
     }
 
-    public void setServerUser(final String serverUser) {
-        this.serverUser = serverUser;
+    /**
+     * Sets database user name.
+     *
+     * @param databaseUsername
+     */
+    public void setDatabaseUsername(final String databaseUsername) {
+        this.databaseUsername = databaseUsername;
     }
 
-    public void setServerPassword(final String serverPassword) {
-        this.serverPassword = serverPassword;
+    /**
+     * Sets database password.
+     *
+     * @param databasePassword
+     */
+    public void setDatabasePassword(final String databasePassword) {
+        this.databasePassword = databasePassword;
     }
 
+    /**
+     * Sets database name.
+     *
+     * @param databaseName
+     */
+    public void setDatabaseName(final String databaseName) {
+        this.databaseName = databaseName;
+    }
+
+    /**
+     * Sets autoGenerateSchema.
+     *
+     * @param autoGenerateSchema
+     */
     public void setAutoGenerateSchema(final boolean autoGenerateSchema) {
         this.autoGenerateSchema = autoGenerateSchema;
     }
 
+    /**
+     * Sets entity scan package.
+     *
+     * @param entityScanPackage
+     */
     public void setEntityScanPackage(final String entityScanPackage) {
         this.entityScanPackage = entityScanPackage;
-    }
-
-    public void setDatabase(final String database) {
-        this.database = database;
     }
 }

@@ -1,19 +1,64 @@
 package org.springframework.data.orientdb3.support;
 
+/**
+ * The orientdb config properties.
+ *
+ * @author xxcxy
+ */
 public interface IOrientdbConfig {
-    String getUrl();
+    /**
+     * Gets the hosts.
+     *
+     * @return
+     */
+    String getHosts();
 
-    String getServerUser();
+    /**
+     * Gets the database user name.
+     *
+     * @return
+     */
+    String getDatabaseUsername();
 
-    String getServerPassword();
+    /**
+     * Gets the database password.
+     *
+     * @return
+     */
+    String getDatabasePassword();
 
-    String getDatabase();
+    /**
+     * Gets the database name.
+     *
+     * @return
+     */
+    String getDatabaseName();
 
-    String getUserName();
+    /**
+     * Gets the user name.
+     *
+     * @return
+     */
+    String getUsername();
 
+    /**
+     * Gets the password.
+     *
+     * @return
+     */
     String getPassword();
 
+    /**
+     * Gets the autoGenerateSchema.
+     *
+     * @return
+     */
     boolean getAutoGenerateSchema();
 
+    /**
+     * Gets the entity scan package.
+     *
+     * @return
+     */
     String getEntityScanPackage();
 }

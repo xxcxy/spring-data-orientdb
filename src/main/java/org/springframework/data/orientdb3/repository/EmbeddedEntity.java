@@ -7,16 +7,17 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Annotation to declare a EdgeEntity.
+ * Annotation to declare EmbeddedEntity.
  *
  * @author xxcxy
  */
+
 @Documented
 @Target({ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
-public @interface EdgeEntity {
+public @interface EmbeddedEntity {
     /**
-     * Configures the edge name.
+     * Configures the entity name.
      *
      * @return
      */

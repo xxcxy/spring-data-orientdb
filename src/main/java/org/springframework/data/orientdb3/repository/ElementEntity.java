@@ -6,9 +6,19 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+/**
+ * Annotation to declare a ElementEntity.
+ *
+ * @author xxcxy
+ */
 @Documented
 @Target({ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
 public @interface ElementEntity {
+    /**
+     * Configures the entity name.
+     *
+     * @return
+     */
     String name() default "";
 }

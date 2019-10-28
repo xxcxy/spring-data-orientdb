@@ -10,8 +10,11 @@ public class VertexObject {
     @OrientdbId
     private String id;
     private String type;
-    @Edge
+    @Edge(name = "TestOutgoing")
     private VertexTarget target;
+
+    @Edge(direction = Edge.INCOMING, name = "TestIncoming")
+    private VertexSource source;
 
     public String getId() {
         return id;
@@ -31,6 +34,14 @@ public class VertexObject {
 
     public void setType(final String type) {
         this.type = type;
+    }
+
+    public VertexSource getSource() {
+        return source;
+    }
+
+    public void setSource(final VertexSource source) {
+        this.source = source;
     }
 
     public void setTarget(final VertexTarget target) {

@@ -17,23 +17,44 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Default implementation of the {@link org.springframework.data.repository.CrudRepository} interface.
+ *
+ * @param <T>  the type of the entity to handle
+ * @param <ID> the type of the entity's identifier
+ * @author xxcxy
+ */
 @Repository
 @Transactional(readOnly = true)
 public class SimpleOrientdbRepository<T, ID> implements OrientdbRepository<T, ID> {
     private final OrientdbEntityInformation<T, ID> entityInformation;
     private final OrientdbEntityManager em;
 
+    /**
+     * Creates a new {@link SimpleOrientdbRepository}.
+     *
+     * @param entityInformation must not be {@literal null}.
+     * @param em                must not be {@literal null}.
+     */
     public SimpleOrientdbRepository(final OrientdbEntityInformation<T, ID> entityInformation,
                                     final OrientdbEntityManager em) {
         this.entityInformation = entityInformation;
         this.em = em;
     }
 
+    /*
+     * (non-Javadoc)
+     * @see org.springframework.data.repository.CrudRepository#findAll(Sort)
+     */
     @Override
     public List<T> findAll(final Sort sort) {
         return em.createQuery(QueryUtils.createSortQuery(sort), entityInformation).getResultList();
     }
 
+    /*
+     * (non-Javadoc)
+     * @see org.springframework.data.repository.CrudRepository#findAll(Pageable)
+     */
     @Override
     public Page<T> findAll(final Pageable pageable) {
         List<T> pageContent = em.createQuery(QueryUtils.createPageQuery(pageable), entityInformation).getResultList();
@@ -43,30 +64,46 @@ public class SimpleOrientdbRepository<T, ID> implements OrientdbRepository<T, ID
         return new PageImpl<>(pageContent);
     }
 
+    /*
+     * (non-Javadoc)
+     * @see org.springframework.data.repository.CrudRepository#save(Object)
+     */
     @Transactional
     @Override
     public <S extends T> S save(final S s) {
-        em.persist(s, entityInformation);
-        return s;
+        return (S) em.persist(s, entityInformation);
     }
 
+    /*
+     * (non-Javadoc)
+     * @see org.springframework.data.repository.CrudRepository#saveAll(Iterable)
+     */
     @Transactional
     @Override
     public <S extends T> Iterable<S> saveAll(final Iterable<S> entities) {
         Assert.notNull(entities, "entities must not be null!");
 
+        List<S> result = new ArrayList<>();
         for (S entity : entities) {
-            em.persist(entity, entityInformation);
+            result.add((S) em.persist(entity, entityInformation));
         }
-        return entities;
+        return result;
     }
 
+    /*
+     * (non-Javadoc)
+     * @see OrientdbRepository#save(Object,String)
+     */
     @Transactional
     @Override
     public <S extends T> S save(final S s, final String clusterName) {
         return (S) em.persist(s, clusterName, entityInformation);
     }
 
+    /*
+     * (non-Javadoc)
+     * @see OrientdbRepository#saveAll(List,String)
+     */
     @Transactional
     @Override
     public <S extends T> List<S> saveAll(final List<S> entities, final String clusterName) {
@@ -79,11 +116,19 @@ public class SimpleOrientdbRepository<T, ID> implements OrientdbRepository<T, ID
         return result;
     }
 
+    /*
+     * (non-Javadoc)
+     * @see OrientdbRepository#findAll(String)
+     */
     @Override
     public List<T> findAll(final String clusterName) {
         return em.findAll(clusterName, entityInformation);
     }
 
+    /*
+     * (non-Javadoc)
+     * @see org.springframework.data.repository.CrudRepository#findById(ID)
+     */
     @Override
     public Optional<T> findById(final ID id) {
         Assert.notNull(id, "Id must not be null!");
@@ -91,6 +136,10 @@ public class SimpleOrientdbRepository<T, ID> implements OrientdbRepository<T, ID
         return Optional.ofNullable(em.find(id, entityInformation));
     }
 
+    /*
+     * (non-Javadoc)
+     * @see org.springframework.data.repository.CrudRepository#existsById(ID)
+     */
     @Override
     public boolean existsById(final ID id) {
         Assert.notNull(id, "Id must not be null!");
@@ -98,11 +147,19 @@ public class SimpleOrientdbRepository<T, ID> implements OrientdbRepository<T, ID
         return findById(id).isPresent();
     }
 
+    /*
+     * (non-Javadoc)
+     * @see org.springframework.data.repository.CrudRepository#findAll()
+     */
     @Override
     public List<T> findAll() {
         return em.findAll(entityInformation);
     }
 
+    /*
+     * (non-Javadoc)
+     * @see org.springframework.data.repository.CrudRepository#findAllById(Iterable)
+     */
     @Override
     public List<T> findAllById(final Iterable<ID> ids) {
         Assert.notNull(ids, "Ids must not be null!");
@@ -114,11 +171,19 @@ public class SimpleOrientdbRepository<T, ID> implements OrientdbRepository<T, ID
         return result;
     }
 
+    /*
+     * (non-Javadoc)
+     * @see org.springframework.data.repository.CrudRepository#count()
+     */
     @Override
     public long count() {
         return em.count(entityInformation);
     }
 
+    /*
+     * (non-Javadoc)
+     * @see org.springframework.data.repository.CrudRepository#deleteById(ID)
+     */
     @Transactional
     @Override
     public void deleteById(final ID id) {
@@ -128,6 +193,10 @@ public class SimpleOrientdbRepository<T, ID> implements OrientdbRepository<T, ID
                 String.format("No %s entity with id %s exists!", entityInformation.getJavaType(), id), 1)));
     }
 
+    /*
+     * (non-Javadoc)
+     * @see org.springframework.data.repository.CrudRepository#delete(Object)
+     */
     @Transactional
     @Override
     public void delete(final T entity) {
@@ -136,6 +205,10 @@ public class SimpleOrientdbRepository<T, ID> implements OrientdbRepository<T, ID
         em.remove(entity);
     }
 
+    /*
+     * (non-Javadoc)
+     * @see org.springframework.data.repository.CrudRepository#deleteAll(Iterable)
+     */
     @Transactional
     @Override
     public void deleteAll(final Iterable<? extends T> entities) {
@@ -146,11 +219,13 @@ public class SimpleOrientdbRepository<T, ID> implements OrientdbRepository<T, ID
         }
     }
 
+    /*
+     * (non-Javadoc)
+     * @see org.springframework.data.repository.CrudRepository#deleteAll()
+     */
     @Transactional
     @Override
     public void deleteAll() {
-        for (T element : findAll()) {
-            delete(element);
-        }
+        em.createCommand(QueryUtils.createDeleteAllQuery(entityInformation.getEntityType()), entityInformation);
     }
 }

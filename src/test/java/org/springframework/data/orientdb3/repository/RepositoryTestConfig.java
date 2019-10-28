@@ -1,13 +1,10 @@
-package org.springframework.data.orientdb3.test.integration;
-
+package org.springframework.data.orientdb3.repository;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.orientdb3.repository.config.EnableOrientdbRepositories;
-import org.springframework.data.orientdb3.repository.support.OrientdbIdParser;
 import org.springframework.data.orientdb3.support.IOrientdbConfig;
 import org.springframework.data.orientdb3.support.SessionFactory;
-import org.springframework.data.orientdb3.test.integration.IdParser.CustIdParser;
 import org.springframework.data.orientdb3.transaction.OrientdbTransactionManager;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
@@ -15,15 +12,13 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 @Configuration
 @EnableTransactionManagement
 @EnableOrientdbRepositories
-public class RepositoryTestConfiguration {
+class RepositoryTestConfig {
 
-
-    @Bean("orientdbConfig")
-    public IOrientdbConfig orientdbConfig() {
+    public IOrientdbConfig orientdbConfig(final String hosts) {
         return new IOrientdbConfig() {
             @Override
             public String getHosts() {
-                return "plocal:orient-db/spring-data-test";
+                return hosts;
             }
 
             @Override
@@ -38,7 +33,7 @@ public class RepositoryTestConfiguration {
 
             @Override
             public String getDatabaseName() {
-                return "test";
+                return "repository_test";
             }
 
             @Override
@@ -48,12 +43,12 @@ public class RepositoryTestConfiguration {
 
             @Override
             public boolean getAutoGenerateSchema() {
-                return false;
+                return true;
             }
 
             @Override
             public String getEntityScanPackage() {
-                return "org.springframework.data.repository.orientdb3";
+                return "org.springframework.data.orientdb3.test.sample";
             }
 
             @Override
@@ -66,10 +61,5 @@ public class RepositoryTestConfiguration {
     @Bean
     public PlatformTransactionManager transactionManager(SessionFactory sessionFactory) {
         return new OrientdbTransactionManager(sessionFactory);
-    }
-
-    @Bean
-    public OrientdbIdParser custIdParser() {
-        return new CustIdParser();
     }
 }

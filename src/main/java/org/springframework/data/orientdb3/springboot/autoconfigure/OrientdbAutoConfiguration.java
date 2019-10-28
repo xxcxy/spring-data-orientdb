@@ -7,9 +7,20 @@ import org.springframework.data.orientdb3.support.SessionFactory;
 import org.springframework.data.orientdb3.transaction.OrientdbTransactionManager;
 import org.springframework.transaction.PlatformTransactionManager;
 
+/**
+ * Special adapter for Springboot.
+ *
+ * @author xxcxy
+ */
 @Configuration
 public class OrientdbAutoConfiguration {
 
+    /**
+     * Creates a new {@link OrientdbTransactionManager}.
+     *
+     * @param sessionFactory
+     * @return
+     */
     @Bean
     @SuppressWarnings({"rawtypes", "unchecked"})
     @ConditionalOnMissingBean(PlatformTransactionManager.class)
