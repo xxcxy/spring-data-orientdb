@@ -8,15 +8,14 @@ import org.mockito.junit.MockitoJUnitRunner;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
-import org.springframework.data.orientdb3.repository.query.TypedQuery;
 import org.springframework.data.orientdb3.support.OrientdbEntityManager;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -37,9 +36,9 @@ public class SimpleOrientdbRepositoryTest {
     @Test
     public void should_find_all_with_sort() {
         List<Object> list = Arrays.asList("", "", "");
-        TypedQuery query = mock(TypedQuery.class);
-        when(em.createQuery("select from %s order by name ASC", entityInformation)).thenReturn(query);
-        when(query.getResultList()).thenReturn(list);
+        when(entityInformation.getEntityName()).thenReturn("SimpleObject");
+        when(em.doQuery("select from SimpleObject order by name ASC", new HashMap<>(), entityInformation))
+                .thenReturn(list);
 
         List<Object> find = repository.findAll(Sort.by("name"));
 
@@ -49,11 +48,10 @@ public class SimpleOrientdbRepositoryTest {
     @Test
     public void should_find_all_with_page() {
         List<Object> list = Arrays.asList("", "", "", "", "");
-        TypedQuery query = mock(TypedQuery.class);
-        when(em.createQuery("select from %s  order by UNSORTED skip 5 limit 5",
-                entityInformation)).thenReturn(query);
+        when(entityInformation.getEntityName()).thenReturn("SimpleObject");
+        when(em.doQuery("select from SimpleObject order by UNSORTED skip 5 limit 5", new HashMap<>(),
+                entityInformation)).thenReturn(list);
         when(em.count(entityInformation)).thenReturn(20L);
-        when(query.getResultList()).thenReturn(list);
 
         Page<Object> find = repository.findAll(PageRequest.of(1, 5));
 

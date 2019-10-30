@@ -68,7 +68,8 @@ public class OrientdbRepositoryFactory extends RepositoryFactorySupport {
     protected Optional<QueryLookupStrategy> getQueryLookupStrategy(@Nullable QueryLookupStrategy.Key key,
                                                                    QueryMethodEvaluationContextProvider evaluationContextProvider) {
         return Optional
-                .of(OrientdbQueryLookupStrategy.create(entityManager, key, evaluationContextProvider));
+                .of(OrientdbQueryLookupStrategy.create(entityManager, key,
+                        evaluationContextProvider, orientdbIdParserHolder));
     }
 
     /*

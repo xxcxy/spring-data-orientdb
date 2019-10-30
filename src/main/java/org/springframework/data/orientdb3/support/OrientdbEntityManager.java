@@ -5,8 +5,6 @@ import com.orientechnologies.orient.core.iterator.ORecordIteratorClass;
 import com.orientechnologies.orient.core.record.OElement;
 import com.orientechnologies.orient.core.record.ORecord;
 import com.orientechnologies.orient.core.record.impl.ODocument;
-import org.springframework.data.orientdb3.repository.query.TypedCommand;
-import org.springframework.data.orientdb3.repository.query.TypedQuery;
 import org.springframework.data.orientdb3.repository.support.OrientdbEntityInformation;
 import org.springframework.data.orientdb3.transaction.SessionHolder;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
@@ -14,10 +12,10 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
-
-import static java.lang.String.format;
+import java.util.stream.Collectors;
 
 /**
  * A orientdb entity manager.
@@ -167,31 +165,46 @@ public class OrientdbEntityManager {
     }
 
     /**
-     * Creates a {@link TypedQuery}.
+     * Executes a query.
      *
      * @param query
      * @param entityInformation
      * @param <T>
-     * @param <ID>
      * @return
      */
-    public <T, ID> TypedQuery<T, ID> createQuery(final String query,
-                                                 final OrientdbEntityInformation<T, ID> entityInformation) {
+    public <T> List<T> doQuery(final String query, final Map<String, Object> parameters,
+                               final OrientdbEntityInformation<T, ?> entityInformation) {
+        HashMap<OElement, Object> converted = new HashMap<>();
         return doWithSession(session ->
-                new TypedQuery<>(session.query(format(query, entityInformation.getEntityName())), entityInformation));
+                session.query(query, parameters)
+                        .elementStream().map(e -> entityInformation.getEntityProxy(e, converted))
+                        .collect(Collectors.toList()));
+    }
+
+    public <T> List<T> doQuery(final String query, final Map<String, Object> parameters, final Class<T> type) {
+        return doWithSession(session ->
+                session.query(query, parameters).elementStream().map(oElement -> convert(oElement, type))
+                        .collect(Collectors.toList()));
+    }
+
+    private <T> T convert(final OElement oElement, final Class<T> clazz) {
+        // TODO
+        return null;
     }
 
     /**
-     * Creates a {@link TypedCommand}.
+     * Executes a command.
      *
      * @param sql
-     * @param entityInformation
-     * @param <T>
-     * @param <ID>
+     * @param parameters
      */
-    public <T, ID> void createCommand(final String sql, final OrientdbEntityInformation<T, ID> entityInformation) {
+    public void doCommand(final String sql, final Map<String, Object> parameters) {
         withSession(session ->
-                new TypedCommand<>(session.command(format(sql, entityInformation.getEntityName())), entityInformation));
+                session.command(sql, parameters));
+    }
+
+    public Long doQueryCount(final String sql, final Map<String, Object> parameters) {
+        return doWithSession(session -> session.query(sql, parameters).next().getProperty("count"));
     }
 
     /**

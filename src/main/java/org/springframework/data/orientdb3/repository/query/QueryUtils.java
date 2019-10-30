@@ -17,8 +17,11 @@ public abstract class QueryUtils {
      * @param sort
      * @return
      */
-    public static String createSortQuery(final Sort sort) {
-        return "select from %s order by " + sort.toString().replaceAll(":", "");
+    public static String createSortQuery(final Sort sort, final String entityName) {
+        return "select from "
+                .concat(entityName)
+                .concat(" order by ")
+                .concat(sort.toString().replaceAll(":", ""));
     }
 
     /**
@@ -27,8 +30,8 @@ public abstract class QueryUtils {
      * @param pageable
      * @return
      */
-    public static String createPageQuery(final Pageable pageable) {
-        StringBuilder sb = new StringBuilder("select from %s ");
+    public static String createPageQuery(final Pageable pageable, final String entityName) {
+        StringBuilder sb = new StringBuilder("select from ").append(entityName);
         if (pageable.getSort() != null) {
             sb.append(" order by ").append(pageable.getSort().toString().replaceAll(":", ""));
         }
@@ -45,13 +48,13 @@ public abstract class QueryUtils {
      * @param entityType
      * @return
      */
-    public static String createDeleteAllQuery(final EntityType entityType) {
+    public static String createDeleteAllQuery(final EntityType entityType, final String entityName) {
         if (entityType == EntityType.VERTEX) {
-            return "delete VERTEX %s";
+            return "delete VERTEX ".concat(entityName);
         } else if (entityType == EntityType.EDGE) {
-            return "delete EDGE %s";
+            return "delete EDGE ".concat(entityName);
         } else {
-            return "delete from %s";
+            return "delete from ".concat(entityName);
         }
     }
 }

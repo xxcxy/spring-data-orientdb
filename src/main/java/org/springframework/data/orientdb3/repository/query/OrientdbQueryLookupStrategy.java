@@ -1,6 +1,7 @@
 package org.springframework.data.orientdb3.repository.query;
 
 import org.springframework.data.orientdb3.repository.Query;
+import org.springframework.data.orientdb3.repository.support.OrientdbIdParserHolder;
 import org.springframework.data.orientdb3.support.OrientdbEntityManager;
 import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.data.repository.core.NamedQueries;
@@ -14,7 +15,7 @@ import org.springframework.util.Assert;
 import java.lang.reflect.Method;
 
 /**
- * Query lookup strategy to execute finders.
+ * StringQuery lookup strategy to execute finders.
  *
  * @author xxcxy
  */
@@ -34,14 +35,17 @@ public final class OrientdbQueryLookupStrategy {
     private abstract static class AbstractQueryLookupStrategy implements QueryLookupStrategy {
 
         private final OrientdbEntityManager em;
+        private final OrientdbIdParserHolder orientdbIdParserHolder;
 
         /**
          * Creates a new {@link AbstractQueryLookupStrategy}.
          *
          * @param em
          */
-        public AbstractQueryLookupStrategy(final OrientdbEntityManager em) {
+        public AbstractQueryLookupStrategy(final OrientdbEntityManager em,
+                                           final OrientdbIdParserHolder orientdbIdParserHolder) {
             this.em = em;
+            this.orientdbIdParserHolder = orientdbIdParserHolder;
         }
 
         /*
@@ -51,12 +55,13 @@ public final class OrientdbQueryLookupStrategy {
         @Override
         public final RepositoryQuery resolveQuery(final Method method, final RepositoryMetadata metadata,
                                                   final ProjectionFactory factory, final NamedQueries namedQueries) {
-            return resolveQuery(new OrientdbQueryMethod(method, metadata, factory), em, namedQueries);
+            return resolveQuery(new OrientdbQueryMethod(method, metadata, factory, orientdbIdParserHolder),
+                    em, namedQueries);
         }
 
-        protected abstract AbstractQuery resolveQuery(final OrientdbQueryMethod method,
-                                                      final OrientdbEntityManager em,
-                                                      final NamedQueries namedQueries);
+        protected abstract AbstractOrientdbRepositoryQuery resolveQuery(final OrientdbQueryMethod method,
+                                                                        final OrientdbEntityManager em,
+                                                                        final NamedQueries namedQueries);
     }
 
     /**
@@ -66,14 +71,14 @@ public final class OrientdbQueryLookupStrategy {
      */
     private static class CreateQueryLookupStrategy extends AbstractQueryLookupStrategy {
 
-        public CreateQueryLookupStrategy(final OrientdbEntityManager em) {
-            super(em);
+        public CreateQueryLookupStrategy(final OrientdbEntityManager em, final OrientdbIdParserHolder orientdbIdParserHolder) {
+            super(em, orientdbIdParserHolder);
         }
 
         @Override
-        protected CreateQuery resolveQuery(final OrientdbQueryMethod method, final OrientdbEntityManager em,
-                                           final NamedQueries namedQueries) {
-            return new CreateQuery(method, em, namedQueries);
+        protected PartTreeOrientdbQuery resolveQuery(final OrientdbQueryMethod method, final OrientdbEntityManager em,
+                                                     final NamedQueries namedQueries) {
+            return new PartTreeOrientdbQuery(method, em, namedQueries);
         }
     }
 
@@ -92,8 +97,9 @@ public final class OrientdbQueryLookupStrategy {
          * @param evaluationContextProvider
          */
         public DeclaredQueryLookupStrategy(final OrientdbEntityManager em,
-                                           final QueryMethodEvaluationContextProvider evaluationContextProvider) {
-            super(em);
+                                           final QueryMethodEvaluationContextProvider evaluationContextProvider,
+                                           final OrientdbIdParserHolder orientdbIdParserHolder) {
+            super(em, orientdbIdParserHolder);
             this.evaluationContextProvider = evaluationContextProvider;
         }
 
@@ -119,22 +125,24 @@ public final class OrientdbQueryLookupStrategy {
          * Creates a new {@link CreateIfNotFoundQueryLookupStrategy}.
          *
          * @param em
-         * @param createStrategy
-         * @param lookupStrategy
+         * @param orientdbIdParserHolder
+         * @param evaluationContextProvider
          */
         public CreateIfNotFoundQueryLookupStrategy(final OrientdbEntityManager em,
-                                                   final CreateQueryLookupStrategy createStrategy,
-                                                   final DeclaredQueryLookupStrategy lookupStrategy) {
+                                                   final OrientdbIdParserHolder orientdbIdParserHolder,
+                                                   final QueryMethodEvaluationContextProvider
+                                                           evaluationContextProvider) {
 
-            super(em);
-            this.createStrategy = createStrategy;
-            this.lookupStrategy = lookupStrategy;
+            super(em, orientdbIdParserHolder);
+            this.createStrategy = new CreateQueryLookupStrategy(em, orientdbIdParserHolder);
+            this.lookupStrategy = new DeclaredQueryLookupStrategy(em, evaluationContextProvider,
+                    orientdbIdParserHolder);
         }
 
         @Override
-        protected AbstractQuery resolveQuery(final OrientdbQueryMethod method,
-                                             final OrientdbEntityManager em,
-                                             final NamedQueries namedQueries) {
+        protected AbstractOrientdbRepositoryQuery resolveQuery(final OrientdbQueryMethod method,
+                                                               final OrientdbEntityManager em,
+                                                               final NamedQueries namedQueries) {
             try {
                 return lookupStrategy.resolveQuery(method, em, namedQueries);
             } catch (IllegalStateException e) {
@@ -152,20 +160,19 @@ public final class OrientdbQueryLookupStrategy {
      * @return
      */
     public static QueryLookupStrategy create(final OrientdbEntityManager em, final Key key,
-                                             final QueryMethodEvaluationContextProvider evaluationContextProvider) {
+                                             final QueryMethodEvaluationContextProvider evaluationContextProvider,
+                                             final OrientdbIdParserHolder orientdbIdParserHolder) {
 
         Assert.notNull(em, "EntityManager must not be null!");
         Assert.notNull(evaluationContextProvider, "EvaluationContextProvider must not be null!");
 
         switch (key != null ? key : Key.CREATE_IF_NOT_FOUND) {
             case CREATE:
-                return new CreateQueryLookupStrategy(em);
+                return new CreateQueryLookupStrategy(em, orientdbIdParserHolder);
             case USE_DECLARED_QUERY:
-                return new DeclaredQueryLookupStrategy(em, evaluationContextProvider);
+                return new DeclaredQueryLookupStrategy(em, evaluationContextProvider, orientdbIdParserHolder);
             case CREATE_IF_NOT_FOUND:
-                return new CreateIfNotFoundQueryLookupStrategy(em,
-                        new CreateQueryLookupStrategy(em),
-                        new DeclaredQueryLookupStrategy(em, evaluationContextProvider));
+                return new CreateIfNotFoundQueryLookupStrategy(em, orientdbIdParserHolder, evaluationContextProvider);
             default:
                 throw new IllegalArgumentException(String.format("Unsupported query lookup strategy %s!", key));
         }

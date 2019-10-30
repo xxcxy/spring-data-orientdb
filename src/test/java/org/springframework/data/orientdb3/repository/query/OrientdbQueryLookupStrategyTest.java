@@ -6,6 +6,8 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.springframework.data.orientdb3.repository.Query;
+import org.springframework.data.orientdb3.repository.support.OrientdbIdParserHolder;
+import org.springframework.data.orientdb3.repository.support.StringIdParser;
 import org.springframework.data.orientdb3.support.OrientdbEntityManager;
 import org.springframework.data.orientdb3.test.sample.SimpleElement;
 import org.springframework.data.projection.ProjectionFactory;
@@ -18,8 +20,10 @@ import org.springframework.data.repository.query.QueryMethodEvaluationContextPro
 import org.springframework.data.repository.query.RepositoryQuery;
 
 import java.lang.reflect.Method;
+import java.util.Optional;
 
 import static org.junit.Assert.assertThat;
+import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class OrientdbQueryLookupStrategyTest {
@@ -30,11 +34,15 @@ public class OrientdbQueryLookupStrategyTest {
     private NamedQueries namedQueries;
     @Mock
     private ProjectionFactory projectionFactory;
+    @Mock
+    private OrientdbIdParserHolder orientdbIdParserHolder;
 
     @Test
     public void should_return_declaredQuery_when_annotated_query() throws Exception {
+        when(orientdbIdParserHolder.getIdParser(String.class)).thenReturn(Optional.of(new StringIdParser()));
         QueryLookupStrategy strategy = OrientdbQueryLookupStrategy.create(em,
-                QueryLookupStrategy.Key.CREATE_IF_NOT_FOUND, QueryMethodEvaluationContextProvider.DEFAULT);
+                QueryLookupStrategy.Key.CREATE_IF_NOT_FOUND, QueryMethodEvaluationContextProvider.DEFAULT,
+                orientdbIdParserHolder);
         Method method = UserRepository.class.getMethod("findByFoo", String.class);
         RepositoryMetadata metadata = new DefaultRepositoryMetadata(UserRepository.class);
 
