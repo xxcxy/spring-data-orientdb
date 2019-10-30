@@ -25,6 +25,7 @@ import org.springframework.data.repository.query.RepositoryQuery;
 import java.util.EmptyStackException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Base class for @link {@link RepositoryQuery}s.
@@ -64,7 +65,10 @@ public abstract class AbstractOrientdbRepositoryQuery implements RepositoryQuery
         Map<String, Object> map = new HashMap<>();
         Parameters<?, ?> methodParameters = queryMethod.getParameters();
         for (int i = 0; i < parameters.length; i++) {
-            map.put(methodParameters.getParameter(i).getName().get(), parameters[i]);
+            Optional<String> parameterName = methodParameters.getParameter(i).getName();
+            if (parameterName.isPresent()) {
+                map.put(parameterName.get(), parameters[i]);
+            }
         }
         return map;
     }

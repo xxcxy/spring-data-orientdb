@@ -107,7 +107,7 @@ public final class OrientdbQueryLookupStrategy {
         protected DeclaredQuery resolveQuery(final OrientdbQueryMethod method, final OrientdbEntityManager em,
                                              final NamedQueries namedQueries) {
 
-            return new DeclaredQuery(method, em, namedQueries, evaluationContextProvider);
+            return new DeclaredQuery(method, em, namedQueries);
         }
     }
 

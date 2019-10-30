@@ -5,7 +5,6 @@ import org.springframework.data.orientdb3.support.OrientdbEntityManager;
 import org.springframework.data.repository.core.NamedQueries;
 import org.springframework.data.repository.query.ParameterAccessor;
 import org.springframework.data.repository.query.ParametersParameterAccessor;
-import org.springframework.data.repository.query.QueryMethodEvaluationContextProvider;
 import org.springframework.data.repository.query.RepositoryQuery;
 import org.springframework.data.repository.query.ResultProcessor;
 
@@ -24,12 +23,10 @@ public class DeclaredQuery extends AbstractOrientdbRepositoryQuery {
      * @param method
      * @param em
      * @param namedQueries
-     * @param evaluationContextProvider
      */
     public DeclaredQuery(final OrientdbQueryMethod method,
                          final OrientdbEntityManager em,
-                         final NamedQueries namedQueries,
-                         final QueryMethodEvaluationContextProvider evaluationContextProvider) {
+                         final NamedQueries namedQueries) {
         super(method, em, namedQueries);
     }
 

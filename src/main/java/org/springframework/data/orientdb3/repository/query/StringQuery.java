@@ -28,13 +28,12 @@ import java.util.stream.Collectors;
  *
  * @author xxcxy
  */
-// TODO
 public class StringQuery {
 
     private static final String SKIP = "sdnSkip";
     private static final String LIMIT = "sdnLimit";
-    private static final String SKIP_LIMIT = " SKIP {" + SKIP + "} LIMIT {" + LIMIT + "}";
-    private static final String ORDER_BY_CLAUSE = " ORDER BY %s";
+    private static final String SKIP_LIMIT = " SKIP :" + SKIP + " LIMIT :" + LIMIT + " ";
+    private static final String ORDER_BY_CLAUSE = " ORDER BY ";
 
     private String sql;
     private Map<String, Object> parameters;
@@ -69,53 +68,32 @@ public class StringQuery {
 
     public String getSql(Pageable pageable, boolean forSlicing) {
         String result = sql;
-        Sort sort = null;
-        if (pageable.isPaged() && pageable.getSort() != Sort.unsorted()) {
-            sort = pageable.getSort();
-        }
-        if (sort != Sort.unsorted()) {
-            result = addSorting(result, sort);
+        if (pageable.isPaged() && pageable.getSort() != null && pageable.getSort() != Sort.unsorted()) {
+            result = addSorting(result, pageable.getSort());
         }
         result = addPaging(result, pageable, forSlicing);
         return result;
     }
 
-    public String getCypherQuery(Sort sort) {
-        // Custom queries in the OGM do not support pageable
-        String result = sql;
-        if (sort != Sort.unsorted()) {
-            result = addSorting(sql, sort);
-        }
-        return result;
-    }
-
-    private String addPaging(String cypherQuery, Pageable pageable, boolean forSlicing) {
-        // Custom queries in the OGM do not support pageable
-        cypherQuery = formatBaseQuery(cypherQuery);
-        cypherQuery = cypherQuery + SKIP_LIMIT;
+    private String addPaging(String sql, Pageable pageable, boolean forSlicing) {
         parameters.put(SKIP, pageable.getPageNumber() * pageable.getPageSize());
         if (forSlicing) {
             parameters.put(LIMIT, pageable.getPageSize() + 1);
         } else {
             parameters.put(LIMIT, pageable.getPageSize());
         }
-        return cypherQuery;
+        return formatBaseQuery(sql).concat(SKIP_LIMIT);
     }
 
-    private String addSorting(String baseQuery, Sort sort) {
-        baseQuery = formatBaseQuery(baseQuery);
-        if (sort == null) {
-            return baseQuery;
-        }
+    private String addSorting(final String baseQuery, final Sort sort) {
         final String sortOrder = getSortOrder(sort);
         if (sortOrder.isEmpty()) {
             return baseQuery;
         }
-        return baseQuery + String.format(ORDER_BY_CLAUSE, sortOrder);
+        return String.join(ORDER_BY_CLAUSE, formatBaseQuery(baseQuery), sortOrder);
     }
 
     private String getSortOrder(Sort sort) {
-
         return sort.stream()
                 .map(order -> order.getProperty() + " " + order.getDirection())
                 .collect(Collectors.joining(", "));

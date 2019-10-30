@@ -232,6 +232,7 @@ public class OrientdbEntityManager {
     }
 
     public Long doQueryCount(final String sql, final Map<String, Object> parameters) {
+        showSql(sql, parameters);
         return doWithSession(session -> session.query(sql, parameters).next().getProperty("count"));
     }
 

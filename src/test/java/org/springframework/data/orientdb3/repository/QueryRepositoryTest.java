@@ -4,6 +4,9 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.springframework.context.annotation.Bean;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.orientdb3.repository.support.OrientdbIdParserHolder;
 import org.springframework.data.orientdb3.repository.support.OrientdbRepositoryFactory;
 import org.springframework.data.orientdb3.repository.support.StringIdParser;
@@ -17,6 +20,7 @@ import org.springframework.test.context.ContextConfiguration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.IntStream;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
@@ -59,6 +63,25 @@ public class QueryRepositoryTest extends RepositoryTestBase {
         assertThat(projectionObjects.get(1).getCName(), is("c2"));
         assertThat(projectionObjects.get(0).getPName(), is("p1"));
         assertThat(projectionObjects.get(1).getPName(), is("p2"));
+    }
+
+    @Test
+    public void should_return_pageable_result() {
+        IntStream.range(0, 20).forEach(i -> {
+            ChildrenElement c = new ChildrenElement();
+            c.setChildName("c" + i);
+            c.setParentName("p" + i / 10);
+            childrenRepository.save(c);
+        });
+
+        Page<ProjectionObject> page = childrenRepository.getAsProjectionWithParentName("p1",
+                PageRequest.of(2, 3, Sort.by("childName")));
+        assertThat(page.getTotalElements(), is(10L));
+        List<ProjectionObject> content = page.getContent();
+        assertThat(content.size(), is(3));
+        assertThat(content.get(0).getCName(), is("c16"));
+        assertThat(content.get(1).getCName(), is("c17"));
+        assertThat(content.get(2).getCName(), is("c18"));
     }
 
     private static final String DB_HOSTS = "plocal:orient-db/spring-data-query-test";
