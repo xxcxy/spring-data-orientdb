@@ -8,14 +8,14 @@ import org.springframework.data.repository.query.ParametersParameterAccessor;
 import org.springframework.data.repository.query.RepositoryQuery;
 import org.springframework.data.repository.query.ResultProcessor;
 
-import java.util.Map;
-
 /**
  * Implementation of {@link RepositoryQuery}.
  *
  * @author xxcxy
  */
 public class DeclaredQuery extends AbstractOrientdbRepositoryQuery {
+
+    private final String queryString;
 
     /**
      * Creates a new {@link DeclaredQuery}
@@ -28,11 +28,12 @@ public class DeclaredQuery extends AbstractOrientdbRepositoryQuery {
                          final OrientdbEntityManager em,
                          final NamedQueries namedQueries) {
         super(method, em, namedQueries);
+        queryString = queryMethod.getRequiredAnnotatedQuery();
     }
 
     @Override
-    protected StringQuery getQuery(final Map<String, Object> parameters) {
-        return new StringQuery(queryMethod.getRequiredAnnotatedQuery(), queryMethod.getCountQuery(),
+    protected StringQuery getQuery(final Object[] parameters) {
+        return new StringQuery(queryString, queryMethod.getCountQuery(),
                 parameters);
     }
 

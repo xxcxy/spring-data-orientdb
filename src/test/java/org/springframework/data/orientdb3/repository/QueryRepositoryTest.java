@@ -13,6 +13,7 @@ import org.springframework.data.orientdb3.repository.support.StringIdParser;
 import org.springframework.data.orientdb3.support.IOrientdbConfig;
 import org.springframework.data.orientdb3.support.OrientdbEntityManager;
 import org.springframework.data.orientdb3.test.sample.ChildrenElement;
+import org.springframework.data.orientdb3.test.sample.ChildrenProjection;
 import org.springframework.data.orientdb3.test.sample.ProjectionObject;
 import org.springframework.data.orientdb3.test.sample.repository.ChildrenElementRepository;
 import org.springframework.test.context.ContextConfiguration;
@@ -20,8 +21,10 @@ import org.springframework.test.context.ContextConfiguration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
@@ -82,6 +85,21 @@ public class QueryRepositoryTest extends RepositoryTestBase {
         assertThat(content.get(0).getCName(), is("c16"));
         assertThat(content.get(1).getCName(), is("c17"));
         assertThat(content.get(2).getCName(), is("c18"));
+    }
+
+    @Test
+    public void should_return_between_record() {
+        IntStream.range(0, 20).forEach(i -> {
+            ChildrenElement c = new ChildrenElement();
+            c.setChildName("c" + i);
+            c.setParentName("p" + i / 10);
+            childrenRepository.save(c);
+        });
+        List<ChildrenProjection> lp = childrenRepository.findByChildNameBetween("c1", "c4");
+        assertThat(lp.size(), is(14));
+        List<String> cNames = lp.stream().map(ChildrenProjection::getChildName).collect(Collectors.toList());
+        assertThat(cNames, hasItems("c1", "c2", "c3", "c4", "c10", "c11", "c12", "c13", "c14", "c15", "c16",
+                "c17", "c18", "c19"));
     }
 
     private static final String DB_HOSTS = "plocal:orient-db/spring-data-query-test";

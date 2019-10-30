@@ -17,11 +17,11 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static java.util.Arrays.asList;
 import static org.springframework.util.ReflectionUtils.doWithFields;
 import static org.springframework.util.ReflectionUtils.setField;
 
@@ -183,7 +183,7 @@ public class OrientdbEntityManager {
      * @param <T>
      * @return
      */
-    public <T> List<T> doQuery(final String query, final Map<String, Object> parameters,
+    public <T> List<T> doQuery(final String query, final Object[] parameters,
                                final OrientdbEntityInformation<T, ?> entityInformation) {
         showSql(query, parameters);
         HashMap<OElement, Object> converted = new HashMap<>();
@@ -193,7 +193,7 @@ public class OrientdbEntityManager {
                         .collect(Collectors.toList()));
     }
 
-    public <T> List<T> doQuery(final String query, final Map<String, Object> parameters, final Class<T> type) {
+    public <T> List<T> doQuery(final String query, final Object[] parameters, final Class<T> type) {
         showSql(query, parameters);
         return doWithSession(session ->
                 session.query(query, parameters).stream().map(oResult -> convert(oResult, type))
@@ -225,13 +225,13 @@ public class OrientdbEntityManager {
      * @param sql
      * @param parameters
      */
-    public void doCommand(final String sql, final Map<String, Object> parameters) {
+    public void doCommand(final String sql, final Object[] parameters) {
         showSql(sql, parameters);
         withSession(session ->
                 session.command(sql, parameters));
     }
 
-    public Long doQueryCount(final String sql, final Map<String, Object> parameters) {
+    public Long doQueryCount(final String sql, final Object[] parameters) {
         showSql(sql, parameters);
         return doWithSession(session -> session.query(sql, parameters).next().getProperty("count"));
     }
@@ -272,7 +272,7 @@ public class OrientdbEntityManager {
         }
     }
 
-    private void showSql(final String sql, final Map<String, Object> parameters) {
-        SQL_LOG.debug(sql.concat(" {}"), parameters);
+    private void showSql(final String sql, final Object[] parameters) {
+        SQL_LOG.debug(sql.concat(" {}"), asList(parameters));
     }
 }

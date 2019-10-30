@@ -19,8 +19,11 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.util.Assert;
 
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.stream.Collectors;
+
+import static java.util.Arrays.asList;
 
 /**
  * Represents an OGM query. Can hold either cypher queries or filter definitions. Also in charge of adding pagination /
@@ -30,36 +33,31 @@ import java.util.stream.Collectors;
  */
 public class StringQuery {
 
-    private static final String SKIP = "sdnSkip";
-    private static final String LIMIT = "sdnLimit";
-    private static final String SKIP_LIMIT = " SKIP :" + SKIP + " LIMIT :" + LIMIT + " ";
+    private static final String SKIP_LIMIT = " SKIP ? LIMIT ? ";
     private static final String ORDER_BY_CLAUSE = " ORDER BY ";
 
     private String sql;
-    private Map<String, Object> parameters;
+    private List<Object> parameters;
     private String countQuery;
 
-    public StringQuery(String sql, Map<String, Object> parameters) {
-        Assert.notNull(sql, "StringQuery must not be null.");
-        Assert.notNull(parameters, "Parameters must not be null.");
-        this.sql = sanitize(sql);
-        this.parameters = parameters;
+    public StringQuery(String sql, Object[] parameters) {
+        this(sql, null, parameters);
     }
 
-    public StringQuery(String sql, String countQuery, Map<String, Object> parameters) {
+    public StringQuery(String sql, String countQuery, Object[] parameters) {
         Assert.notNull(sql, "StringQuery must not be null.");
         Assert.notNull(parameters, "Parameters must not be null.");
         this.sql = sanitize(sql);
         this.countQuery = sanitize(countQuery);
-        this.parameters = parameters;
+        this.parameters = new ArrayList<>(asList(parameters));
     }
 
     public String getSql() {
         return sql;
     }
 
-    public Map<String, Object> getParameters() {
-        return parameters;
+    public Object[] getParameters() {
+        return parameters.toArray();
     }
 
     public String getCountQuery() {
@@ -76,13 +74,23 @@ public class StringQuery {
     }
 
     private String addPaging(String sql, Pageable pageable, boolean forSlicing) {
-        parameters.put(SKIP, pageable.getPageNumber() * pageable.getPageSize());
+        int insertIndex = getParameterInsertIndex();
+        parameters.add(insertIndex, pageable.getPageNumber() * pageable.getPageSize());
         if (forSlicing) {
-            parameters.put(LIMIT, pageable.getPageSize() + 1);
+            parameters.add(insertIndex + 1, pageable.getPageSize() + 1);
         } else {
-            parameters.put(LIMIT, pageable.getPageSize());
+            parameters.add(insertIndex + 1, pageable.getPageSize());
         }
         return formatBaseQuery(sql).concat(SKIP_LIMIT);
+    }
+
+    private int getParameterInsertIndex() {
+        for (int i = 0; i < parameters.size(); i++) {
+            if (parameters.get(i) instanceof Pageable || parameters.get(i) instanceof Sort) {
+                return i;
+            }
+        }
+        return parameters.size();
     }
 
     private String addSorting(final String baseQuery, final Sort sort) {

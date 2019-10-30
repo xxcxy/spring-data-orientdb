@@ -11,7 +11,6 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.orientdb3.support.OrientdbEntityManager;
 
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -37,7 +36,7 @@ public class SimpleOrientdbRepositoryTest {
     public void should_find_all_with_sort() {
         List<Object> list = Arrays.asList("", "", "");
         when(entityInformation.getEntityName()).thenReturn("SimpleObject");
-        when(em.doQuery("select from SimpleObject order by name ASC", new HashMap<>(), entityInformation))
+        when(em.doQuery("select from SimpleObject order by name ASC", new Object[0], entityInformation))
                 .thenReturn(list);
 
         List<Object> find = repository.findAll(Sort.by("name"));
@@ -49,7 +48,7 @@ public class SimpleOrientdbRepositoryTest {
     public void should_find_all_with_page() {
         List<Object> list = Arrays.asList("", "", "", "", "");
         when(entityInformation.getEntityName()).thenReturn("SimpleObject");
-        when(em.doQuery("select from SimpleObject order by UNSORTED skip 5 limit 5", new HashMap<>(),
+        when(em.doQuery("select from SimpleObject order by UNSORTED skip 5 limit 5", new Object[0],
                 entityInformation)).thenReturn(list);
         when(em.count(entityInformation)).thenReturn(20L);
 

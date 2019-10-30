@@ -19,13 +19,9 @@ import org.springframework.data.orientdb3.repository.support.OrientdbEntityInfor
 import org.springframework.data.orientdb3.support.OrientdbEntityManager;
 import org.springframework.data.repository.core.NamedQueries;
 import org.springframework.data.repository.query.ParameterAccessor;
-import org.springframework.data.repository.query.Parameters;
 import org.springframework.data.repository.query.RepositoryQuery;
 
 import java.util.EmptyStackException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
 
 /**
  * Base class for @link {@link RepositoryQuery}s.
@@ -46,31 +42,19 @@ public abstract class AbstractOrientdbRepositoryQuery implements RepositoryQuery
         this.namedQueries = namedQueries;
     }
 
-    protected abstract StringQuery getQuery(Map<String, Object> parameters);
+    protected abstract StringQuery getQuery(Object[] parameters);
 
     @Override
     public Object execute(Object[] parameters) {
 
         StringQuery stringQuery;
         try {
-            stringQuery = getQuery(getParameters(parameters));
+            stringQuery = getQuery(parameters);
         } catch (EmptyStackException e) {
             throw new IllegalArgumentException("Not enough arguments for stringQuery " + getQueryMethod().getName());
         }
 
         return doExecute(stringQuery, parameters, queryMethod.getEntityInformation());
-    }
-
-    private Map<String, Object> getParameters(Object[] parameters) {
-        Map<String, Object> map = new HashMap<>();
-        Parameters<?, ?> methodParameters = queryMethod.getParameters();
-        for (int i = 0; i < parameters.length; i++) {
-            Optional<String> parameterName = methodParameters.getParameter(i).getName();
-            if (parameterName.isPresent()) {
-                map.put(parameterName.get(), parameters[i]);
-            }
-        }
-        return map;
     }
 
     protected abstract Object doExecute(StringQuery params, Object[] parameters,

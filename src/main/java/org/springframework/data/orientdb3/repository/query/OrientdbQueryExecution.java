@@ -25,7 +25,6 @@ import org.springframework.data.repository.support.PageableExecutionUtils;
 import org.springframework.util.Assert;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * Classes intended to pilot query execution according to the type of the query. The type of the query is determined by
@@ -48,7 +47,7 @@ public abstract class OrientdbQueryExecution {
         return doExecute(entityManager, accessor, stringQuery, type, entityInformation);
     }
 
-    protected List<?> doQuery(final String sql, final Map<String, Object> parameters, final Class<?> type,
+    protected List<?> doQuery(final String sql, final Object[] parameters, final Class<?> type,
                               final OrientdbEntityInformation<?, ?> entityInformation) {
         if (type.equals(entityInformation.getJavaType())) {
             return entityManager.doQuery(sql, parameters, entityInformation);

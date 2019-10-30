@@ -14,7 +14,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.Assert;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 
@@ -50,7 +49,7 @@ public class SimpleOrientdbRepository<T, ID> implements OrientdbRepository<T, ID
     @Override
     public List<T> findAll(final Sort sort) {
         return em.doQuery(QueryUtils.createSortQuery(sort, entityInformation.getEntityName()),
-                new HashMap<>(), entityInformation);
+                new Object[0], entityInformation);
     }
 
     /*
@@ -60,7 +59,7 @@ public class SimpleOrientdbRepository<T, ID> implements OrientdbRepository<T, ID
     @Override
     public Page<T> findAll(final Pageable pageable) {
         List<T> pageContent = em.doQuery(QueryUtils.createPageQuery(pageable, entityInformation.getEntityName()),
-                new HashMap<>(), entityInformation);
+                new Object[0], entityInformation);
         if (pageable.isPaged()) {
             return PageableExecutionUtils.getPage(pageContent, pageable, () -> em.count(entityInformation));
         }
@@ -230,6 +229,6 @@ public class SimpleOrientdbRepository<T, ID> implements OrientdbRepository<T, ID
     @Override
     public void deleteAll() {
         em.doCommand(QueryUtils.createDeleteAllQuery(entityInformation.getEntityType(),
-                entityInformation.getEntityName()), new HashMap<>());
+                entityInformation.getEntityName()), new Object[0]);
     }
 }

@@ -5,6 +5,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.orientdb3.repository.OrientdbRepository;
 import org.springframework.data.orientdb3.repository.Query;
 import org.springframework.data.orientdb3.test.sample.ChildrenElement;
+import org.springframework.data.orientdb3.test.sample.ChildrenProjection;
 import org.springframework.data.orientdb3.test.sample.ProjectionObject;
 import org.springframework.data.repository.query.Param;
 
@@ -26,4 +27,6 @@ public interface ChildrenElementRepository extends OrientdbRepository<ChildrenEl
     @Query(value = "select childName as cName, parentName as pName from ChildrenElement where parentName = :pName",
             countQuery = "select count(*) as count from ChildrenElement where parentName = :pName")
     Page<ProjectionObject> getAsProjectionWithParentName(@Param("pName") String pName, Pageable pageable);
+
+    List<ChildrenProjection> findByChildNameBetween(String start, String end);
 }
