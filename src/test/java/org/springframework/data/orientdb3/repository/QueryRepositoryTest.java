@@ -10,6 +10,7 @@ import org.springframework.data.orientdb3.repository.support.StringIdParser;
 import org.springframework.data.orientdb3.support.IOrientdbConfig;
 import org.springframework.data.orientdb3.support.OrientdbEntityManager;
 import org.springframework.data.orientdb3.test.sample.ChildrenElement;
+import org.springframework.data.orientdb3.test.sample.ProjectionObject;
 import org.springframework.data.orientdb3.test.sample.repository.ChildrenElementRepository;
 import org.springframework.test.context.ContextConfiguration;
 
@@ -41,15 +42,23 @@ public class QueryRepositoryTest extends RepositoryTestBase {
         c2.setParentName("p2");
         childrenRepository.saveAll(Arrays.asList(c1, c2));
 
+        // Test query
         List<ChildrenElement> queryAll = childrenRepository.getAllElementObject();
-
         assertThat(queryAll.size(), is(2));
 
+        // Test query with parameters
         Optional<ChildrenElement> byName = childrenRepository.findByName("c1");
-
         assertThat(byName.isPresent(), is(true));
         assertThat(byName.get().getChildName(), is("c1"));
         assertThat(byName.get().getParentName(), is("p1"));
+
+        // Test query with projection
+        List<ProjectionObject> projectionObjects = childrenRepository.getAllAsProjection();
+        assertThat(projectionObjects.size(), is(2));
+        assertThat(projectionObjects.get(0).getCName(), is("c1"));
+        assertThat(projectionObjects.get(1).getCName(), is("c2"));
+        assertThat(projectionObjects.get(0).getPName(), is("p1"));
+        assertThat(projectionObjects.get(1).getPName(), is("p2"));
     }
 
     private static final String DB_HOSTS = "plocal:orient-db/spring-data-query-test";

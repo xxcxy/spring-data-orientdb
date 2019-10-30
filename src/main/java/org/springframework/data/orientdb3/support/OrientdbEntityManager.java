@@ -2,9 +2,14 @@ package org.springframework.data.orientdb3.support;
 
 import com.orientechnologies.orient.core.db.ODatabaseSession;
 import com.orientechnologies.orient.core.iterator.ORecordIteratorClass;
+import com.orientechnologies.orient.core.metadata.schema.OType;
 import com.orientechnologies.orient.core.record.OElement;
 import com.orientechnologies.orient.core.record.ORecord;
 import com.orientechnologies.orient.core.record.impl.ODocument;
+import com.orientechnologies.orient.core.sql.executor.OResult;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.data.orientdb3.repository.QueryResult;
 import org.springframework.data.orientdb3.repository.support.OrientdbEntityInformation;
 import org.springframework.data.orientdb3.transaction.SessionHolder;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
@@ -17,12 +22,18 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static org.springframework.util.ReflectionUtils.doWithFields;
+import static org.springframework.util.ReflectionUtils.setField;
+
 /**
  * A orientdb entity manager.
  *
  * @author xxcxy
  */
 public class OrientdbEntityManager {
+
+    private static final Logger SQL_LOG = LoggerFactory.getLogger("orientdb.query.sql");
+    private static final Logger LOG = LoggerFactory.getLogger(OrientdbEntityManager.class);
 
     private final SessionFactory sessionFactory;
 
@@ -174,6 +185,7 @@ public class OrientdbEntityManager {
      */
     public <T> List<T> doQuery(final String query, final Map<String, Object> parameters,
                                final OrientdbEntityInformation<T, ?> entityInformation) {
+        showSql(query, parameters);
         HashMap<OElement, Object> converted = new HashMap<>();
         return doWithSession(session ->
                 session.query(query, parameters)
@@ -182,13 +194,28 @@ public class OrientdbEntityManager {
     }
 
     public <T> List<T> doQuery(final String query, final Map<String, Object> parameters, final Class<T> type) {
+        showSql(query, parameters);
         return doWithSession(session ->
-                session.query(query, parameters).elementStream().map(oElement -> convert(oElement, type))
+                session.query(query, parameters).stream().map(oResult -> convert(oResult, type))
                         .collect(Collectors.toList()));
     }
 
-    private <T> T convert(final OElement oElement, final Class<T> clazz) {
-        // TODO
+    private <T> T convert(final OResult oResult, final Class<T> clazz) {
+        if (clazz.getAnnotation(QueryResult.class) == null) {
+            LOG.error("Projection class must have a QueryResult annotation!");
+            return null;
+        }
+        try {
+            T dto = clazz.newInstance();
+            doWithFields(clazz, field -> {
+                field.setAccessible(true);
+                Object obj = oResult.getProperty(field.getName());
+                setField(field, dto, OType.convert(obj, field.getType()));
+            });
+            return dto;
+        } catch (Exception e) {
+            LOG.error("Create new dto error: ", e);
+        }
         return null;
     }
 
@@ -199,6 +226,7 @@ public class OrientdbEntityManager {
      * @param parameters
      */
     public void doCommand(final String sql, final Map<String, Object> parameters) {
+        showSql(sql, parameters);
         withSession(session ->
                 session.command(sql, parameters));
     }
@@ -241,5 +269,9 @@ public class OrientdbEntityManager {
             consumer.accept(session);
             session.close();
         }
+    }
+
+    private void showSql(final String sql, final Map<String, Object> parameters) {
+        SQL_LOG.debug(sql.concat(" {}"), parameters);
     }
 }

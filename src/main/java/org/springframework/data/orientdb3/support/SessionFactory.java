@@ -46,11 +46,10 @@ import static org.springframework.util.StringUtils.isEmpty;
  */
 public class SessionFactory {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(SessionFactory.class);
+    private static final Logger LOG = LoggerFactory.getLogger(SessionFactory.class);
 
     private final OrientDB orientDB;
     private final ODatabasePool pool;
-    private final IOrientdbConfig orientdbConfig;
 
     /**
      * Creates a new {@link SessionFactory}.
@@ -58,14 +57,13 @@ public class SessionFactory {
      * @param orientdbConfig
      */
     public SessionFactory(final IOrientdbConfig orientdbConfig) {
-        if (orientdbConfig.getAutoGenerateSchema()) {
-            generateSchema(orientdbConfig);
-        }
         orientDB = new OrientDB(orientdbConfig.getHosts(), orientdbConfig.getDatabaseUsername(),
                 orientdbConfig.getDatabasePassword(), OrientDBConfig.defaultConfig());
         pool = new ODatabasePool(orientDB, orientdbConfig.getDatabaseName(), orientdbConfig.getUsername(),
                 orientdbConfig.getPassword());
-        this.orientdbConfig = orientdbConfig;
+        if (orientdbConfig.getAutoGenerateSchema()) {
+            generateSchema(pool.acquire(), orientdbConfig.getEntityScanPackage());
+        }
     }
 
     /**
@@ -82,16 +80,13 @@ public class SessionFactory {
     /**
      * Generates the orientdb schema.
      *
-     * @param orientdbConfig
+     * @param session
+     * @param entityScanPackage
      */
-    public void generateSchema(final IOrientdbConfig orientdbConfig) {
-        OrientDB db = new OrientDB(orientdbConfig.getHosts(), orientdbConfig.getDatabaseUsername(),
-                orientdbConfig.getDatabasePassword(), OrientDBConfig.defaultConfig());
-        ODatabaseSession session = db.open(orientdbConfig.getDatabaseName(), orientdbConfig.getUsername(),
-                orientdbConfig.getPassword());
+    public void generateSchema(final ODatabaseSession session, final String entityScanPackage) {
         Map<String, OClass> processed = new HashMap<>();
         Map<String, Consumer<OClass>> postProcess = new HashMap<>();
-        for (Class clazz : getClasses(orientdbConfig.getEntityScanPackage())) {
+        for (Class clazz : getClasses(entityScanPackage)) {
             generateSchema(session, clazz, processed, postProcess);
         }
 
@@ -100,7 +95,6 @@ public class SessionFactory {
             postProcess.get(className).accept(processed.get(className));
         }
         session.close();
-        db.close();
     }
 
     /**
@@ -122,7 +116,7 @@ public class SessionFactory {
             try {
                 entityClasses.add(Class.forName(beanClassName));
             } catch (ClassNotFoundException e) {
-                LOGGER.error("Generate class: {}'s schema error: ", beanClassName, e);
+                LOG.error("Generate class: {}'s schema error: ", beanClassName, e);
             }
         }
         return entityClasses;

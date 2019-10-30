@@ -45,7 +45,7 @@ public class DeclaredQuery extends AbstractOrientdbRepositoryQuery {
         ParameterAccessor accessor = new ParametersParameterAccessor(queryMethod.getParameters(), parameters);
         ResultProcessor processor = queryMethod.getResultProcessor().withDynamicProjection(accessor);
         Object results = getExecution(accessor).execute(params,
-                processor.getReturnedType().getDomainType(), queryMethod.getEntityInformation());
+                processor.getReturnedType().getReturnedType(), queryMethod.getEntityInformation());
         return processor.processResult(results);
     }
 
