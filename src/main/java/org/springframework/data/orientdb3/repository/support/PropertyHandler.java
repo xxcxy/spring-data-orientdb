@@ -203,4 +203,6 @@ public abstract class PropertyHandler {
         }
         return target;
     }
+
+    public abstract boolean isCascade();
 }

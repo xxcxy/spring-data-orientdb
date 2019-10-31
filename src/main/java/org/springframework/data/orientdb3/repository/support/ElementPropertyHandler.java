@@ -32,6 +32,7 @@ public class ElementPropertyHandler extends PropertyHandler {
     private final OrientdbIdParserHolder parserHolder;
     private final boolean isLink;
     private final boolean isEmbedded;
+    private final boolean isCascade;
     private final OType oType;
 
     ElementPropertyHandler(final Field field, final OrientdbIdParserHolder parserHolder) {
@@ -46,8 +47,10 @@ public class ElementPropertyHandler extends PropertyHandler {
 
         if (field.getAnnotation(Link.class) != null) {
             isLink = true;
+            isCascade = field.getAnnotation(Link.class).cascade();
         } else {
             isLink = false;
+            isCascade = false;
         }
 
         if (isLink && isEmbedded) {
@@ -135,5 +138,8 @@ public class ElementPropertyHandler extends PropertyHandler {
         return OType.convert(oElement.getProperty(getPropertyName()), field.getType());
     }
 
-
+    @Override
+    public boolean isCascade() {
+        return isCascade;
+    }
 }

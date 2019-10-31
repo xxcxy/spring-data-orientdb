@@ -15,8 +15,6 @@ import java.lang.reflect.Method;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 import static org.springframework.data.orientdb3.support.SessionListener.bindEntityProxy;
 import static org.springframework.util.ReflectionUtils.setField;
@@ -172,7 +170,7 @@ public class EntityProxy<T> implements MethodInterceptor {
             }
             Object obj = ph.getPropertyInJavaType(oElement, gotObjects);
             // If a collection be got, we can not listen its changed but we can assume that it will be changed.
-            if (obj instanceof Collection || obj instanceof Map) {
+            if (obj instanceof Collection || obj instanceof Map || ph.isCascade()) {
                 updateField.put(fieldName, obj);
             }
             return obj;
@@ -194,21 +192,17 @@ public class EntityProxy<T> implements MethodInterceptor {
             return ((EntityProxyInterface) info.save(target, session, cluster, new HashMap<>())).findOElement();
         }
         inSaving = true;
-        Set<Object> updatedTopProperty = updateField.keySet()
-                .stream()
-                .map(info::getPropertyHandler)
-                .map(p -> p.getPropertyInJavaType(oElement, gotObjects))
-                .collect(Collectors.toSet());
 
         for (Map.Entry<String, Object> field : updateField.entrySet()) {
-            info.getPropertyHandler(field.getKey())
-                    .setOElementProperty(oElement, field.getValue(), session, new HashMap<>());
-        }
-        for (Object obj : gotObjects.values()) {
-            if (obj != this && obj instanceof EntityProxyInterface && !updatedTopProperty.contains(obj)) {
-                ((EntityProxyInterface) obj).saveOElement(session, null);
+            PropertyHandler ph = info.getPropertyHandler(field.getKey());
+            ph.setOElementProperty(oElement, field.getValue(), session, new HashMap<>());
+
+            // Saves cascade property
+            if (ph.isCascade() && field.getValue() instanceof EntityProxyInterface) {
+                ((EntityProxyInterface) field.getValue()).saveOElement(session, null);
             }
         }
+
         if (cluster != null) {
             oElement.save(cluster);
         } else {

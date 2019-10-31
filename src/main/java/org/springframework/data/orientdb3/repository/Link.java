@@ -15,4 +15,10 @@ import java.lang.annotation.Target;
 @Target({ElementType.FIELD})
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Link {
+    /**
+     * Configures the cascade of the link.
+     *
+     * @return
+     */
+    boolean cascade() default true;
 }

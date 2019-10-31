@@ -208,7 +208,7 @@ public class OrientdbEntityInformation<T, ID> implements EntityInformation<T, ID
     }
 
     /**
-     * Saves a jave object to orientdb.
+     * Saves a java object to orientdb.
      *
      * @param entity
      * @param session

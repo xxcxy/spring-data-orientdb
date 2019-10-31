@@ -31,4 +31,11 @@ public @interface Edge {
      * @return
      */
     String direction() default OUTGOING;
+
+    /**
+     * Configures the cascade of the edge.
+     *
+     * @return
+     */
+    boolean cascade() default true;
 }

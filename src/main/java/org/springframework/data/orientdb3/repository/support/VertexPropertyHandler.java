@@ -38,6 +38,7 @@ public class VertexPropertyHandler extends PropertyHandler {
     private final OrientdbIdParserHolder parserHolder;
     private final boolean isEdge;
     private final boolean isEmbedded;
+    private final boolean isCascade;
     private final OType oType;
 
     /**
@@ -52,7 +53,6 @@ public class VertexPropertyHandler extends PropertyHandler {
         this.parserHolder = parserHolder;
         this.oType = getOrientdbType();
 
-
         if (field.getAnnotation(Embedded.class) != null) {
             isEmbedded = true;
         } else {
@@ -61,8 +61,10 @@ public class VertexPropertyHandler extends PropertyHandler {
 
         if (field.getAnnotation(Edge.class) != null) {
             isEdge = true;
+            isCascade = field.getAnnotation(Edge.class).cascade();
         } else {
             isEdge = false;
+            isCascade = false;
         }
 
         if (isEdge && isEmbedded) {
@@ -232,5 +234,10 @@ public class VertexPropertyHandler extends PropertyHandler {
                     (type, obj) -> convertToJavaProperty(parserHolder, type, obj, converted));
         }
         return OType.convert(oElement.getProperty(getPropertyName()), field.getType());
+    }
+
+    @Override
+    public boolean isCascade() {
+        return isCascade;
     }
 }

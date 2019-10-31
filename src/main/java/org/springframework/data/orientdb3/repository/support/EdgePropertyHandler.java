@@ -108,4 +108,9 @@ public class EdgePropertyHandler extends PropertyHandler {
         }
         return OType.convert(oElement.getProperty(getPropertyName()), field.getType());
     }
+
+    @Override
+    public boolean isCascade() {
+        return false;
+    }
 }
