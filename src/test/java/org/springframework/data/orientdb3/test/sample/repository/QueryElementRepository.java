@@ -1,11 +1,15 @@
 package org.springframework.data.orientdb3.test.sample.repository;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.orientdb3.repository.OrientdbRepository;
 import org.springframework.data.orientdb3.test.sample.QueryElement;
 
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Stream;
 
 public interface QueryElementRepository extends OrientdbRepository<QueryElement, String> {
 
@@ -57,4 +61,13 @@ public interface QueryElementRepository extends OrientdbRepository<QueryElement,
 
     List<QueryElement> findByNameOrDescription(String name, String description);
 
+    QueryElement findEntityByName(String name);
+
+    Optional<QueryElement> findOptionByName(String s);
+
+    Page<QueryElement> findByName(String name, Pageable page);
+
+    Iterable<QueryElement> findIterableByName(String name);
+
+    Stream<QueryElement> findStreamByName(String name);
 }

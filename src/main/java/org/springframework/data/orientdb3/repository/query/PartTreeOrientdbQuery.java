@@ -69,20 +69,22 @@ public class PartTreeOrientdbQuery extends AbstractOrientdbRepositoryQuery {
 
     @Override
     protected StringQuery getQuery(final Object[] parameters) {
-        StringBuilder sql = new StringBuilder(createBaseSql());
+        String where = getWhereClause(parameters);
+        String entityName = queryMethod.getEntityInformation().getEntityName();
+
+        StringBuilder sql = new StringBuilder(createBaseSql(entityName));
         sql.append(" where ");
-        sql.append(getWhereClause(parameters));
+        sql.append(where);
         if (!queryMethod.isPageQuery() && !queryMethod.isSliceQuery()) {
             sql.append(" ").append(getSort()).append(getLimit());
         }
-        return new StringQuery(sql.toString(), parameters);
+        return new StringQuery(sql.toString(), createCountSql(entityName, where), parameters);
     }
 
-    private String createBaseSql() {
+    private String createBaseSql(final String entityName) {
         if (tree.isDelete()) {
             throw new UnsupportedOperationException("Deleting has not been supported");
         }
-        String entityName = queryMethod.getEntityInformation().getEntityName();
         if (tree.isCountProjection()) {
             return "select count(*) as count from ".concat(entityName);
         }
@@ -90,6 +92,10 @@ public class PartTreeOrientdbQuery extends AbstractOrientdbRepositoryQuery {
             return "select 1 from ".concat(entityName);
         }
         return "select from ".concat(entityName);
+    }
+
+    private String createCountSql(final String entityName, final String where) {
+        return "select count(*) as count from ".concat(entityName).concat(" where ").concat(where);
     }
 
     private String getWhereClause(final Object[] parameters) {

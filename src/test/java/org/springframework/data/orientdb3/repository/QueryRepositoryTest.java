@@ -25,10 +25,13 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import static java.util.Arrays.asList;
+import static java.util.stream.Collectors.toList;
 import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertThat;
 
 @ContextConfiguration(classes = QueryRepositoryTest.config.class)
@@ -79,6 +82,266 @@ public class QueryRepositoryTest extends RepositoryTestBase {
 
         List<QueryElement> cr = queryElementRepository.findByEmailAddressesContains(asList("email2", "add1"));
         assertThat(cr.size(), is(2));
+    }
+
+    @Test
+    public void should_find_by_in() {
+        prepareContaining();
+        List<QueryElement> iq = queryElementRepository.findByNameIn(asList("nameContains", "addContains", "test"));
+        assertThat(iq.size(), is(1));
+        assertThat(iq.get(0).getName(), is("nameContains"));
+    }
+
+    @Test
+    public void should_find_by_between() {
+        prepareBetween();
+        List<QueryElement> bq = queryElementRepository.findByScoreBetween(1.0, 9.9);
+        assertThat(bq.size(), is(1));
+        assertThat(bq.get(0).getName(), is("middle"));
+    }
+
+    @Test
+    public void should_find_by_starting_with() {
+        prepareBetween();
+        List<QueryElement> sq = queryElementRepository.findByNameStartingWith("mi");
+        assertThat(sq.size(), is(2));
+    }
+
+    @Test
+    public void should_find_by_ending_with() {
+        prepareBetween();
+        List<QueryElement> eq = queryElementRepository.findByNameEndingWith("le");
+        assertThat(eq.size(), is(1));
+        assertThat(eq.get(0).getName(), is("middle"));
+    }
+
+    @Test
+    public void should_find_by_exists() {
+        prepareExists();
+        List<QueryElement> eq = queryElementRepository.findByNameExists();
+        assertThat(eq.size(), is(1));
+        assertThat(eq.get(0).getName(), is("exists"));
+    }
+
+    @Test
+    public void should_find_by_true() {
+        prepareBoolean();
+        List<QueryElement> tq = queryElementRepository.findByActivatedIsTrue();
+        assertThat(tq.size(), is(1));
+        assertThat(tq.get(0).getName(), is("activated"));
+    }
+
+    @Test
+    public void should_find_by_false() {
+        prepareBoolean();
+        List<QueryElement> fq = queryElementRepository.findByActivatedIsFalse();
+        assertThat(fq.size(), is(1));
+        assertThat(fq.get(0).getName(), is("inactivated"));
+    }
+
+    @Test
+    public void should_find_by_is() {
+        prepareBoolean();
+        List<QueryElement> iq = queryElementRepository.findByNameIs("activated");
+        assertThat(iq.size(), is(1));
+        assertThat(iq.get(0).getName(), is("activated"));
+    }
+
+    @Test
+    public void should_find_by_not_null() {
+        prepareExists();
+        List<QueryElement> eq = queryElementRepository.findByNameNotNull();
+        assertThat(eq.size(), is(1));
+        assertThat(eq.get(0).getName(), is("exists"));
+    }
+
+    @Test
+    public void should_find_by_null() {
+        prepareExists();
+        List<QueryElement> nq = queryElementRepository.findByNameNull();
+        assertThat(nq.size(), is(1));
+        assertThat(nq.get(0).getScore(), is(20.0));
+        assertThat(nq.get(0).getName(), nullValue());
+    }
+
+    @Test
+    public void should_find_by_greater_than() {
+        prepareBetween();
+        List<QueryElement> gq = queryElementRepository.findByScoreGreaterThan(5.0);
+        assertThat(gq.size(), is(1));
+        assertThat(gq.get(0).getName(), is("max"));
+    }
+
+    @Test
+    public void should_find_by_greater_than_equal() {
+        prepareBetween();
+        List<QueryElement> gq = queryElementRepository.findByScoreGreaterThanEqual(5.0);
+        assertThat(gq.size(), is(2));
+    }
+
+    @Test
+    public void should_find_by_less_than() {
+        prepareBetween();
+        List<QueryElement> lq = queryElementRepository.findByScoreLessThan(5.0);
+        assertThat(lq.size(), is(1));
+        assertThat(lq.get(0).getName(), is("min"));
+    }
+
+    @Test
+    public void should_find_by_less_than_equal() {
+        prepareBetween();
+        List<QueryElement> lq = queryElementRepository.findByScoreLessThanEqual(5.0);
+        assertThat(lq.size(), is(2));
+    }
+
+    @Test
+    public void should_find_by_like() {
+        prepareDate(Calendar.getInstance());
+        List<QueryElement> lq = queryElementRepository.findByNameLike("%day");
+        assertThat(lq.size(), is(2));
+    }
+
+    @Test
+    public void should_find_by_not_like() {
+        prepareDate(Calendar.getInstance());
+        List<QueryElement> lq = queryElementRepository.findByNameNotLike("%day");
+        assertThat(lq.size(), is(1));
+        assertThat(lq.get(0).getName(), is("tomorrow"));
+    }
+
+    @Test
+    public void should_find_by_regex() {
+        prepareDate(Calendar.getInstance());
+        List<QueryElement> rq = queryElementRepository.findByNameRegex(".*ter.*");
+        assertThat(rq.size(), is(1));
+        assertThat(rq.get(0).getName(), is("yesterday"));
+    }
+
+    @Test
+    public void should_find_by_and_condition() {
+        prepareAndOr();
+        List<QueryElement> tt = queryElementRepository.findByNameAndDescription("tName", "tDesc");
+        assertThat(tt.size(), is(1));
+        assertThat(tt.get(0).getName(), is("tName"));
+        assertThat(tt.get(0).getDescription(), is("tDesc"));
+    }
+
+    @Test
+    public void should_find_by_or_condition() {
+        prepareAndOr();
+        List<QueryElement> tq = queryElementRepository.findByNameOrDescription("tName", "qDesc");
+        assertThat(tq.size(), is(3));
+    }
+
+    @Test
+    public void should_find_entity() {
+        QueryElement t = new QueryElement();
+        t.setName("name");
+        queryElementRepository.save(t);
+        QueryElement f = queryElementRepository.findEntityByName("name");
+        assertThat(f.getName(), is("name"));
+    }
+
+    @Test
+    public void should_find_optional() {
+        QueryElement t = new QueryElement();
+        t.setName("name");
+        queryElementRepository.save(t);
+        Optional<QueryElement> f = queryElementRepository.findOptionByName("name");
+        assertThat(f.isPresent(), is(true));
+        assertThat(f.get().getName(), is("name"));
+    }
+
+    @Test
+    public void should_find_page() {
+        prepareListData();
+        Page<QueryElement> p = queryElementRepository.findByName("name", PageRequest.of(2, 5));
+        assertThat(p.getTotalElements(), is(20L));
+        assertThat(p.getContent().size(), is(5));
+    }
+
+    @Test
+    public void should_find_iterable() {
+        prepareListData();
+        Iterable<QueryElement> i = queryElementRepository.findIterableByName("name");
+        int count = 0;
+        for (QueryElement e : i) {
+            assertThat(e.getName(), is("name"));
+            count++;
+        }
+        assertThat(count, is(20));
+    }
+
+    @Test
+    public void should_find_stream() {
+        prepareListData();
+        Stream<QueryElement> s = queryElementRepository.findStreamByName("name");
+        List<QueryElement> l = s.collect(Collectors.toList());
+        assertThat(l.size(), is(20));
+    }
+
+    private void prepareListData() {
+        queryElementRepository.saveAll(IntStream.range(0, 20).mapToObj(i -> {
+            QueryElement q = new QueryElement();
+            q.setName("name");
+            q.setDescription("desc" + i);
+            return q;
+        }).collect(toList()));
+    }
+
+    private void prepareAndOr() {
+        QueryElement tt = new QueryElement();
+        tt.setName("tName");
+        tt.setDescription("tDesc");
+        queryElementRepository.save(tt);
+        QueryElement tq = new QueryElement();
+        tq.setName("tName");
+        tq.setDescription("qDesc");
+        queryElementRepository.save(tq);
+        QueryElement qt = new QueryElement();
+        qt.setName("qName");
+        qt.setDescription("tDesc");
+        queryElementRepository.save(qt);
+        QueryElement qq = new QueryElement();
+        qq.setName("qName");
+        qq.setDescription("qDesc");
+        queryElementRepository.save(qq);
+    }
+
+    private void prepareBoolean() {
+        QueryElement t = new QueryElement();
+        t.setName("activated");
+        t.setActivated(true);
+        queryElementRepository.save(t);
+        QueryElement f = new QueryElement();
+        f.setName("inactivated");
+        f.setActivated(false);
+        queryElementRepository.save(f);
+    }
+
+    private void prepareExists() {
+        QueryElement e = new QueryElement();
+        e.setName("exists");
+        e.setScore(10.0);
+        queryElementRepository.save(e);
+        QueryElement n = new QueryElement();
+        n.setScore(20.0);
+        queryElementRepository.save(n);
+    }
+
+    private void prepareBetween() {
+        QueryElement f = new QueryElement();
+        f.setName("min");
+        f.setScore(0.3);
+        queryElementRepository.save(f);
+        QueryElement s = new QueryElement();
+        s.setName("middle");
+        s.setScore(5.0);
+        queryElementRepository.save(s);
+        QueryElement t = new QueryElement();
+        t.setName("max");
+        t.setScore(10.0);
+        queryElementRepository.save(t);
     }
 
     private void prepareContaining() {
@@ -168,7 +431,7 @@ public class QueryRepositoryTest extends RepositoryTestBase {
         });
         List<ChildrenProjection> lp = childrenRepository.findByChildNameBetween("c1", "c4");
         assertThat(lp.size(), is(14));
-        List<String> cNames = lp.stream().map(ChildrenProjection::getChildName).collect(Collectors.toList());
+        List<String> cNames = lp.stream().map(ChildrenProjection::getChildName).collect(toList());
         assertThat(cNames, hasItems("c1", "c2", "c3", "c4", "c10", "c11", "c12", "c13", "c14", "c15", "c16",
                 "c17", "c18", "c19"));
 
