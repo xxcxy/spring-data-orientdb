@@ -15,15 +15,18 @@ import org.springframework.data.orientdb3.support.OrientdbEntityManager;
 import org.springframework.data.orientdb3.test.sample.ChildrenElement;
 import org.springframework.data.orientdb3.test.sample.ChildrenProjection;
 import org.springframework.data.orientdb3.test.sample.ProjectionObject;
+import org.springframework.data.orientdb3.test.sample.QueryElement;
 import org.springframework.data.orientdb3.test.sample.repository.ChildrenElementRepository;
+import org.springframework.data.orientdb3.test.sample.repository.QueryElementRepository;
 import org.springframework.test.context.ContextConfiguration;
 
-import java.util.Arrays;
+import java.util.Calendar;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import static java.util.Arrays.asList;
 import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
@@ -32,11 +35,79 @@ import static org.junit.Assert.assertThat;
 public class QueryRepositoryTest extends RepositoryTestBase {
 
     private ChildrenElementRepository childrenRepository;
+    private QueryElementRepository queryElementRepository;
 
     @Before
     public void setup() {
         childrenRepository = new OrientdbRepositoryFactory(new OrientdbEntityManager(sessionFactory),
                 new OrientdbIdParserHolder(new StringIdParser())).getRepository(ChildrenElementRepository.class);
+        queryElementRepository = new OrientdbRepositoryFactory(new OrientdbEntityManager(sessionFactory),
+                new OrientdbIdParserHolder(new StringIdParser())).getRepository(QueryElementRepository.class);
+    }
+
+    @Test
+    public void should_find_by_after() {
+        Calendar calendar = Calendar.getInstance();
+        prepareDate(calendar);
+        List<QueryElement> lq = queryElementRepository.findByDateAfter(calendar.getTime());
+        assertThat(lq.size(), is(1));
+        assertThat(lq.get(0).getName(), is("tomorrow"));
+    }
+
+    @Test
+    public void should_find_by_before() {
+        Calendar calendar = Calendar.getInstance();
+        prepareDate(calendar);
+        List<QueryElement> lq = queryElementRepository.findByDateBefore(calendar.getTime());
+        assertThat(lq.size(), is(1));
+        assertThat(lq.get(0).getName(), is("yesterday"));
+    }
+
+    @Test
+    public void should_find_by_containing() {
+        prepareContaining();
+        List<QueryElement> lq = queryElementRepository.findByNameContaining("name");
+        assertThat(lq.size(), is(1));
+        assertThat(lq.get(0).getName(), is("nameContains"));
+
+        List<QueryElement> lr = queryElementRepository.findByNameContaining("Cont");
+        assertThat(lr.size(), is(2));
+
+        List<QueryElement> cq = queryElementRepository.findByEmailAddressesContains("email1");
+        assertThat(cq.size(), is(1));
+        assertThat(cq.get(0).getName(), is("addressContains"));
+
+        List<QueryElement> cr = queryElementRepository.findByEmailAddressesContains(asList("email2", "add1"));
+        assertThat(cr.size(), is(2));
+    }
+
+    private void prepareContaining() {
+        QueryElement t = new QueryElement();
+        t.setName("nameContains");
+        t.setEmailAddresses(asList("add1", "add2"));
+        queryElementRepository.save(t);
+        QueryElement s = new QueryElement();
+        s.setName("addressContains");
+        s.setEmailAddresses(asList("email1", "email2"));
+        queryElementRepository.save(s);
+    }
+
+    private void prepareDate(final Calendar calendar) {
+        QueryElement t = new QueryElement();
+        t.setName("today");
+        t.setDate(calendar.getTime());
+        queryElementRepository.save(t);
+        QueryElement y = new QueryElement();
+        calendar.add(Calendar.DATE, -1);
+        y.setName("yesterday");
+        y.setDate(calendar.getTime());
+        queryElementRepository.save(y);
+        QueryElement to = new QueryElement();
+        calendar.add(Calendar.DATE, 2);
+        to.setName("tomorrow");
+        to.setDate(calendar.getTime());
+        queryElementRepository.save(to);
+        calendar.add(Calendar.DATE, -1);
     }
 
     @Test
@@ -47,7 +118,7 @@ public class QueryRepositoryTest extends RepositoryTestBase {
         ChildrenElement c2 = new ChildrenElement();
         c2.setChildName("c2");
         c2.setParentName("p2");
-        childrenRepository.saveAll(Arrays.asList(c1, c2));
+        childrenRepository.saveAll(asList(c1, c2));
 
         // Test query
         List<ChildrenElement> queryAll = childrenRepository.getAllElementObject();
@@ -100,6 +171,21 @@ public class QueryRepositoryTest extends RepositoryTestBase {
         List<String> cNames = lp.stream().map(ChildrenProjection::getChildName).collect(Collectors.toList());
         assertThat(cNames, hasItems("c1", "c2", "c3", "c4", "c10", "c11", "c12", "c13", "c14", "c15", "c16",
                 "c17", "c18", "c19"));
+
+        List<ChildrenProjection> lc = childrenRepository.findByChildNameIn(asList("c2", "c3", "c5"));
+        assertThat(lc.size(), is(3));
+
+        List<ChildrenProjection> ls = childrenRepository.findByChildNameStartingWith("c");
+        assertThat(ls.size(), is(20));
+
+        List<ChildrenProjection> le = childrenRepository.findByChildNameEndingWith("3");
+        assertThat(le.size(), is(2));
+
+        List<ChildrenProjection> lee = childrenRepository.findByChildNameEndingWith("13");
+        assertThat(lee.size(), is(1));
+
+        List<ChildrenProjection> lcc = childrenRepository.findByChildNameContaining("5");
+        assertThat(lcc.size(), is(2));
     }
 
     private static final String DB_HOSTS = "plocal:orient-db/spring-data-query-test";

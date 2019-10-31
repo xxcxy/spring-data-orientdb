@@ -29,4 +29,12 @@ public interface ChildrenElementRepository extends OrientdbRepository<ChildrenEl
     Page<ProjectionObject> getAsProjectionWithParentName(@Param("pName") String pName, Pageable pageable);
 
     List<ChildrenProjection> findByChildNameBetween(String start, String end);
+
+    List<ChildrenProjection> findByChildNameIn(Iterable<String> names);
+
+    List<ChildrenProjection> findByChildNameStartingWith(String start);
+
+    List<ChildrenProjection> findByChildNameEndingWith(String end);
+
+    List<ChildrenProjection> findByChildNameContaining(String str);
 }

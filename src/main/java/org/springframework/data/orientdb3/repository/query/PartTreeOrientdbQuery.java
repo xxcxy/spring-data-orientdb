@@ -27,6 +27,7 @@ import org.springframework.data.repository.query.parser.Part;
 import org.springframework.data.repository.query.parser.PartTree;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 
@@ -124,7 +125,45 @@ public class PartTreeOrientdbQuery extends AbstractOrientdbRepositoryQuery {
         } else if (type == Part.Type.BEFORE) {
             andString.add(" " + key + " < ? ");
         } else if (type == Part.Type.CONTAINING) {
-
+            if (part.getProperty().getType().equals(String.class) && !part.getProperty().isCollection()) {
+                andString.add(" " + key + " containsText ? ");
+            } else if (parameters[parameterIndex] instanceof Collection) {
+                andString.add(" " + key + " containsAny( ? ) ");
+            } else {
+                andString.add(" " + key + " contains( ? ) ");
+            }
+        } else if (type == Part.Type.IN) {
+            andString.add(" " + key + " in ?");
+        } else if (type == Part.Type.STARTING_WITH) {
+            long length = parameters[parameterIndex].toString().length();
+            andString.add(" " + key + ".left(" + length + ") = ? ");
+        } else if (type == Part.Type.ENDING_WITH) {
+            long length = parameters[parameterIndex].toString().length();
+            andString.add(" " + key + ".right(" + length + ") = ? ");
+        } else if (type == Part.Type.EXISTS || type == Part.Type.IS_NOT_NULL) {
+            andString.add(" not(" + key + " is null) ");
+        } else if (type == Part.Type.TRUE) {
+            andString.add(" " + key + " = true ");
+        } else if (type == Part.Type.FALSE) {
+            andString.add(" " + key + " = false ");
+        } else if (type == Part.Type.SIMPLE_PROPERTY) {
+            andString.add(" " + key + " = ? ");
+        } else if (type == Part.Type.IS_NULL) {
+            andString.add(" " + key + " is null ");
+        } else if (type == Part.Type.GREATER_THAN) {
+            andString.add(" " + key + " > ? ");
+        } else if (type == Part.Type.GREATER_THAN_EQUAL) {
+            andString.add(" " + key + " >= ? ");
+        } else if (type == Part.Type.LESS_THAN) {
+            andString.add(" " + key + " < ? ");
+        } else if (type == Part.Type.LESS_THAN_EQUAL) {
+            andString.add(" " + key + " <= ? ");
+        } else if (type == Part.Type.LIKE) {
+            andString.add(" " + key + " like ? ");
+        } else if (type == Part.Type.NOT_LIKE) {
+            andString.add(" not(" + key + " like ?) ");
+        } else if (type == Part.Type.REGEX) {
+            andString.add(" " + key + " matches ? ");
         }
         return parameterIndex + part.getNumberOfArguments();
     }
