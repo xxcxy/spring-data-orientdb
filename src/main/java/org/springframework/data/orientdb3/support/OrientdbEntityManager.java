@@ -193,6 +193,15 @@ public class OrientdbEntityManager {
                         .collect(Collectors.toList()));
     }
 
+    /**
+     * Executes a query sql.
+     *
+     * @param query
+     * @param parameters
+     * @param type
+     * @param <T>
+     * @return
+     */
     public <T> List<T> doQuery(final String query, final Object[] parameters, final Class<T> type) {
         showSql(query, parameters);
         return doWithSession(session ->
@@ -200,6 +209,14 @@ public class OrientdbEntityManager {
                         .collect(Collectors.toList()));
     }
 
+    /**
+     * Converts a {@link OResult} to a java type object.
+     *
+     * @param oResult
+     * @param clazz
+     * @param <T>
+     * @return
+     */
     private <T> T convert(final OResult oResult, final Class<T> clazz) {
         if (clazz.getAnnotation(QueryResult.class) == null) {
             LOG.error("Projection class must have a QueryResult annotation!");
@@ -231,6 +248,13 @@ public class OrientdbEntityManager {
                 session.command(sql, parameters));
     }
 
+    /**
+     * Executes a count sql.
+     *
+     * @param sql
+     * @param parameters
+     * @return
+     */
     public Long doQueryCount(final String sql, final Object[] parameters) {
         showSql(sql, parameters);
         return doWithSession(session -> session.query(sql, parameters).next().getProperty("count"));
@@ -272,6 +296,12 @@ public class OrientdbEntityManager {
         }
     }
 
+    /**
+     * Logs the query sql.
+     *
+     * @param sql
+     * @param parameters
+     */
     private void showSql(final String sql, final Object[] parameters) {
         SQL_LOG.debug(sql.concat(" {}"), asList(parameters));
     }

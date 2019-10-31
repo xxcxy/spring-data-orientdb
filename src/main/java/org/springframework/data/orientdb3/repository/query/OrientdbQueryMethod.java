@@ -8,7 +8,6 @@ import org.springframework.data.orientdb3.repository.support.OrientdbEntityInfor
 import org.springframework.data.orientdb3.repository.support.OrientdbIdParserHolder;
 import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.data.repository.core.RepositoryMetadata;
-import org.springframework.data.repository.query.Parameter;
 import org.springframework.data.repository.query.Parameters;
 import org.springframework.data.repository.query.QueryMethod;
 import org.springframework.lang.Nullable;
@@ -53,24 +52,6 @@ public class OrientdbQueryMethod extends QueryMethod {
 
         Assert.isTrue(!(isModifyingQuery() && getParameters().hasSpecialParameter()),
                 format("Modifying method must not contain %s!", Parameters.TYPES));
-        assertParameterNamesInAnnotatedQuery();
-    }
-
-    private void assertParameterNamesInAnnotatedQuery() {
-        String annotatedQuery = getAnnotatedQuery();
-        for (Parameter parameter : getParameters()) {
-            if (!parameter.isNamedParameter()) {
-                continue;
-            }
-            if (StringUtils.isEmpty(annotatedQuery)
-                    || !annotatedQuery.contains(format(":%s", parameter.getName().get()))
-                    && !annotatedQuery.contains(format("#%s", parameter.getName().get()))) {
-                throw new IllegalStateException(
-                        format("Using named parameters for method %s " +
-                                        "but parameter '%s' not found in annotated query '%s'!",
-                                method, parameter.getName(), annotatedQuery));
-            }
-        }
     }
 
     /*

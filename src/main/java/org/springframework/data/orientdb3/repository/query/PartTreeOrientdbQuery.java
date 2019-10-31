@@ -42,6 +42,13 @@ public class PartTreeOrientdbQuery extends AbstractOrientdbRepositoryQuery {
 
     private final PartTree tree;
 
+    /**
+     * Creates a new {@link PartTreeOrientdbQuery}.
+     *
+     * @param method
+     * @param em
+     * @param namedQueries
+     */
     public PartTreeOrientdbQuery(final OrientdbQueryMethod method, final OrientdbEntityManager em,
                                  final NamedQueries namedQueries) {
         super(method, em, namedQueries);
@@ -49,6 +56,10 @@ public class PartTreeOrientdbQuery extends AbstractOrientdbRepositoryQuery {
         this.tree = new PartTree(method.getName(), domainType);
     }
 
+    /*
+     * (non-Javadoc)
+     * @see AbstractOrientdbRepositoryQuery#doExecute(java.lang.Object[])
+     */
     @Override
     protected Object doExecute(final StringQuery params, final Object[] parameters,
                                final OrientdbEntityInformation<?, ?> entityInformation) {
@@ -67,6 +78,10 @@ public class PartTreeOrientdbQuery extends AbstractOrientdbRepositoryQuery {
         return processor.processResult(results);
     }
 
+    /*
+     * (non-Javadoc)
+     * @see AbstractOrientdbRepositoryQuery#getQuery(java.lang.Object[])
+     */
     @Override
     protected StringQuery getQuery(final Object[] parameters) {
         String where = getWhereClause(parameters);
@@ -81,6 +96,12 @@ public class PartTreeOrientdbQuery extends AbstractOrientdbRepositoryQuery {
         return new StringQuery(sql.toString(), createCountSql(entityName, where), parameters);
     }
 
+    /**
+     * Creates a base sql.
+     *
+     * @param entityName must not be {@literal null}.
+     * @return
+     */
     private String createBaseSql(final String entityName) {
         if (tree.isDelete()) {
             throw new UnsupportedOperationException("Deleting has not been supported");
@@ -94,10 +115,23 @@ public class PartTreeOrientdbQuery extends AbstractOrientdbRepositoryQuery {
         return "select from ".concat(entityName);
     }
 
+    /**
+     * Creates a count sql.
+     *
+     * @param entityName must not be {@literal null}.
+     * @param where      must not be {@literal null}.
+     * @return
+     */
     private String createCountSql(final String entityName, final String where) {
         return "select count(*) as count from ".concat(entityName).concat(" where ").concat(where);
     }
 
+    /**
+     * Creates a where clause sql.
+     *
+     * @param parameters must not be {@literal null}.
+     * @return
+     */
     private String getWhereClause(final Object[] parameters) {
         List<String> orParts = new ArrayList<>();
         Iterator<PartTree.OrPart> orPartIterator = tree.iterator();
@@ -108,6 +142,15 @@ public class PartTreeOrientdbQuery extends AbstractOrientdbRepositoryQuery {
         return orParts.stream().collect(joining(" or "));
     }
 
+    /**
+     * Converts orPart to string sql.
+     *
+     * @param orPart         must not be {@literal null}.
+     * @param orParts        must not be {@literal null}.
+     * @param parameterIndex must not be {@literal null}.
+     * @param parameters     must not be {@literal null}.
+     * @return
+     */
     private int convertOrPart(final PartTree.OrPart orPart, final List<String> orParts,
                               final int parameterIndex, final Object[] parameters) {
         int newIndex = parameterIndex;
@@ -120,6 +163,15 @@ public class PartTreeOrientdbQuery extends AbstractOrientdbRepositoryQuery {
         return newIndex;
     }
 
+    /**
+     * Converts part to string sql.
+     *
+     * @param part           must not be {@literal null}.
+     * @param andString      must not be {@literal null}.
+     * @param parameterIndex must not be {@literal null}.
+     * @param parameters     must not be {@literal null}.
+     * @return
+     */
     private int convertPart(final Part part, final List<String> andString,
                             final int parameterIndex, final Object[] parameters) {
         Part.Type type = part.getType();
@@ -174,6 +226,11 @@ public class PartTreeOrientdbQuery extends AbstractOrientdbRepositoryQuery {
         return parameterIndex + part.getNumberOfArguments();
     }
 
+    /**
+     * Gets sort sql.
+     *
+     * @return
+     */
     private String getSort() {
         Sort sort = tree.getSort();
         if (sort != null && !sort.isUnsorted()) {
@@ -184,6 +241,11 @@ public class PartTreeOrientdbQuery extends AbstractOrientdbRepositoryQuery {
         return "";
     }
 
+    /**
+     * Gets limit sql.
+     *
+     * @return
+     */
     private String getLimit() {
         Integer limit = tree.getMaxResults();
         if (limit != null) {

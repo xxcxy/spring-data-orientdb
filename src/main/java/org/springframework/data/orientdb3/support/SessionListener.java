@@ -140,6 +140,5 @@ public class SessionListener implements ODatabaseListener {
     @Override
     public void onAfterCommand(final OCommandRequestText oCommandRequestText,
                                final OCommandExecutor oCommandExecutor, final Object o) {
-        System.out.println("====================================" + oCommandRequestText.getText());
     }
 }

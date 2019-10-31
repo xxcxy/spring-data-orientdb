@@ -31,12 +31,20 @@ public class DeclaredQuery extends AbstractOrientdbRepositoryQuery {
         queryString = queryMethod.getRequiredAnnotatedQuery();
     }
 
+    /*
+     * (non-Javadoc)
+     * @see AbstractOrientdbRepositoryQuery#getQuery(java.lang.Object[])
+     */
     @Override
     protected StringQuery getQuery(final Object[] parameters) {
         return new StringQuery(queryString, queryMethod.getCountQuery(),
                 parameters);
     }
 
+    /*
+     * (non-Javadoc)
+     * @see AbstractOrientdbRepositoryQuery#doExecute()
+     */
     @Override
     protected Object doExecute(final StringQuery params, final Object[] parameters,
                                final OrientdbEntityInformation<?, ?> entityInformation) {

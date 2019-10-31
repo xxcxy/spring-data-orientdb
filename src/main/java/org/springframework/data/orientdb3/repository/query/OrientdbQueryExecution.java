@@ -17,6 +17,7 @@ package org.springframework.data.orientdb3.repository.query;
 
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.SliceImpl;
 import org.springframework.data.orientdb3.repository.support.OrientdbEntityInformation;
 import org.springframework.data.orientdb3.support.OrientdbEntityManager;
@@ -37,16 +38,39 @@ public abstract class OrientdbQueryExecution {
     private final OrientdbEntityManager entityManager;
     private final ParameterAccessor accessor;
 
+    /**
+     * Creates a new {@ling OrientdbQueryExecution}.
+     *
+     * @param entityManager must not be {@literal null}.
+     * @param accessor      must not be {@literal null}.
+     */
     protected OrientdbQueryExecution(final OrientdbEntityManager entityManager, final ParameterAccessor accessor) {
         this.entityManager = entityManager;
         this.accessor = accessor;
     }
 
+    /**
+     * Executes the given {@link StringQuery} with the given {@link OrientdbEntityManager}.
+     *
+     * @param stringQuery       must not be {@literal null}.
+     * @param type              must not be {@literal null}.
+     * @param entityInformation must not be {@literal null}.
+     * @return
+     */
     public Object execute(final StringQuery stringQuery, final Class<?> type,
                           final OrientdbEntityInformation<?, ?> entityInformation) {
         return doExecute(entityManager, accessor, stringQuery, type, entityInformation);
     }
 
+    /**
+     * Executes the given sql with the given {@link OrientdbEntityManager}.
+     *
+     * @param sql               must not be {@literal null}.
+     * @param parameters        must not be {@literal null}.
+     * @param type              must not be {@literal null}.
+     * @param entityInformation must not be {@literal null}.
+     * @return
+     */
     protected List<?> doQuery(final String sql, final Object[] parameters, final Class<?> type,
                               final OrientdbEntityInformation<?, ?> entityInformation) {
         if (type.equals(entityInformation.getJavaType())) {
@@ -56,16 +80,38 @@ public abstract class OrientdbQueryExecution {
         }
     }
 
+    /**
+     * Method to implement {@link OrientdbQueryExecution} executions by single enum values.
+     *
+     * @param em                must not be {@literal null}.
+     * @param accessor          must not be {@literal null}.
+     * @param stringQuery       must not be {@literal null}.
+     * @param type              must not be {@literal null}.
+     * @param entityInformation must not be {@literal null}.
+     * @return
+     */
     protected abstract Object doExecute(OrientdbEntityManager em, ParameterAccessor accessor,
                                         StringQuery stringQuery, Class<?> type,
                                         OrientdbEntityInformation<?, ?> entityInformation);
 
+    /**
+     * Executes a {@link OrientdbQueryExecution} to return a single entity.
+     */
     static final class SingleEntityExecution extends OrientdbQueryExecution {
-
+        /**
+         * Creates a new {@link SingleEntityExecution}.
+         *
+         * @param entityManager
+         * @param accessor
+         */
         SingleEntityExecution(OrientdbEntityManager entityManager, ParameterAccessor accessor) {
             super(entityManager, accessor);
         }
 
+        /*
+         * (non-Javadoc)
+         * @see OrientdbQueryExecution.doExecute()
+         */
         @Override
         public Object doExecute(final OrientdbEntityManager em, final ParameterAccessor accessor,
                                 final StringQuery stringQuery, final Class<?> type,
@@ -82,12 +128,25 @@ public abstract class OrientdbQueryExecution {
         }
     }
 
+    /**
+     * Executes the query to return a simple collection of entities.
+     */
     static final class CollectionExecution extends OrientdbQueryExecution {
 
+        /**
+         * Creates a new {@link CollectionExecution}.
+         *
+         * @param entityManager
+         * @param accessor
+         */
         CollectionExecution(OrientdbEntityManager entityManager, ParameterAccessor accessor) {
             super(entityManager, accessor);
         }
 
+        /*
+         * (non-Javadoc)
+         * @see OrientdbQueryExecution.doExecute()
+         */
         @Override
         protected Object doExecute(final OrientdbEntityManager em, final ParameterAccessor accessor,
                                    final StringQuery stringQuery, final Class<?> type,
@@ -96,12 +155,25 @@ public abstract class OrientdbQueryExecution {
         }
     }
 
+    /**
+     * Executes the {@link OrientdbQueryExecution} to return a {@link org.springframework.data.domain.Page} of
+     * entities.
+     */
     static final class PagedExecution extends OrientdbQueryExecution {
-
+        /**
+         * Creates a new {@link PagedExecution}.
+         *
+         * @param entityManager
+         * @param accessor
+         */
         PagedExecution(OrientdbEntityManager entityManager, ParameterAccessor accessor) {
             super(entityManager, accessor);
         }
 
+        /*
+         * (non-Javadoc)
+         * @see OrientdbQueryExecution.doExecute()
+         */
         @Override
         protected Object doExecute(final OrientdbEntityManager em, final ParameterAccessor accessor,
                                    final StringQuery stringQuery, final Class<?> type,
@@ -118,12 +190,24 @@ public abstract class OrientdbQueryExecution {
         }
     }
 
+    /**
+     * Executes the query to return a {@link Slice} of entities.
+     */
     static final class SlicedExecution extends OrientdbQueryExecution {
-
+        /**
+         * Creates a new {@link SlicedExecution}.
+         *
+         * @param entityManager
+         * @param accessor
+         */
         SlicedExecution(OrientdbEntityManager entityManager, ParameterAccessor accessor) {
             super(entityManager, accessor);
         }
 
+        /*
+         * (non-Javadoc)
+         * @see OrientdbQueryExecution.doExecute()
+         */
         @Override
         protected Object doExecute(final OrientdbEntityManager em, final ParameterAccessor accessor,
                                    final StringQuery stringQuery, final Class<?> type,
@@ -140,12 +224,24 @@ public abstract class OrientdbQueryExecution {
         }
     }
 
+    /**
+     * Executes a modifying query such as an update, insert or delete.
+     */
     static final class ModifyingExecution extends OrientdbQueryExecution {
-
+        /**
+         * Creates a new {@link ModifyingExecution}.
+         *
+         * @param entityManager
+         * @param accessor
+         */
         ModifyingExecution(OrientdbEntityManager entityManager, ParameterAccessor accessor) {
             super(entityManager, accessor);
         }
 
+        /*
+         * (non-Javadoc)
+         * @see OrientdbQueryExecution.doExecute()
+         */
         @Override
         protected Object doExecute(final OrientdbEntityManager em, final ParameterAccessor accessor,
                                    final StringQuery stringQuery, final Class<?> type,

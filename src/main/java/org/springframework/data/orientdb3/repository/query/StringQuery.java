@@ -17,6 +17,7 @@ package org.springframework.data.orientdb3.repository.query;
 
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
 import java.util.ArrayList;
@@ -26,8 +27,8 @@ import java.util.stream.Collectors;
 import static java.util.Arrays.asList;
 
 /**
- * Represents an OGM query. Can hold either cypher queries or filter definitions. Also in charge of adding pagination /
- * sort to the string based queries as OGM does not support pagination and sort on those.
+ * Represents a {@link String} query. Hold sql queries . Also in charge of adding pagination /
+ * sort to the string  queries.
  *
  * @author xxcxy
  */
@@ -40,11 +41,14 @@ public class StringQuery {
     private List<Object> parameters;
     private String countQuery;
 
-    public StringQuery(String sql, Object[] parameters) {
-        this(sql, null, parameters);
-    }
-
-    public StringQuery(String sql, String countQuery, Object[] parameters) {
+    /**
+     * Creates a new {@link StringQuery}.
+     *
+     * @param sql        must not be {@literal null}.
+     * @param countQuery
+     * @param parameters must not be {@literal null}.
+     */
+    public StringQuery(final String sql, @Nullable final String countQuery, final Object[] parameters) {
         Assert.notNull(sql, "StringQuery must not be null.");
         Assert.notNull(parameters, "Parameters must not be null.");
         this.sql = sanitize(sql);
@@ -52,18 +56,40 @@ public class StringQuery {
         this.parameters = new ArrayList<>(asList(parameters));
     }
 
+    /**
+     * Gets the string sql.
+     *
+     * @return
+     */
     public String getSql() {
         return sql;
     }
 
+    /**
+     * Gets sql parameters.
+     *
+     * @return
+     */
     public Object[] getParameters() {
         return parameters.toArray();
     }
 
+    /**
+     * Gets the count sql.
+     *
+     * @return
+     */
     public String getCountQuery() {
         return countQuery;
     }
 
+    /**
+     * Gets a sql with given {@link Pageable}.
+     *
+     * @param pageable   must not be {@literal null}.
+     * @param forSlicing must not be {@literal null}.
+     * @return
+     */
     public String getSql(Pageable pageable, boolean forSlicing) {
         String result = sql;
         if (pageable.isPaged() && pageable.getSort() != null && pageable.getSort() != Sort.unsorted()) {
@@ -73,6 +99,14 @@ public class StringQuery {
         return result;
     }
 
+    /**
+     * Adds page sql to the source sql and new parameters.
+     *
+     * @param sql        must not be {@literal null}.
+     * @param pageable   must not be {@literal null}.
+     * @param forSlicing must not be {@literal null}.
+     * @return
+     */
     private String addPaging(String sql, Pageable pageable, boolean forSlicing) {
         int insertIndex = getParameterInsertIndex();
         parameters.add(insertIndex, pageable.getPageNumber() * pageable.getPageSize());
@@ -84,6 +118,11 @@ public class StringQuery {
         return formatBaseQuery(sql).concat(SKIP_LIMIT);
     }
 
+    /**
+     * Gets the new parameter index.
+     *
+     * @return
+     */
     private int getParameterInsertIndex() {
         for (int i = 0; i < parameters.size(); i++) {
             if (parameters.get(i) instanceof Pageable || parameters.get(i) instanceof Sort) {
@@ -93,6 +132,13 @@ public class StringQuery {
         return parameters.size();
     }
 
+    /**
+     * Returns a sql with given sort.
+     *
+     * @param baseQuery must not be {@literal null}.
+     * @param sort      must not be {@literal null}.
+     * @return
+     */
     private String addSorting(final String baseQuery, final Sort sort) {
         final String sortOrder = getSortOrder(sort);
         if (sortOrder.isEmpty()) {
@@ -101,12 +147,24 @@ public class StringQuery {
         return String.join(ORDER_BY_CLAUSE, formatBaseQuery(baseQuery), sortOrder);
     }
 
+    /**
+     * Gets sort string.
+     *
+     * @param sort must not be {@literal null}.
+     * @return
+     */
     private String getSortOrder(Sort sort) {
         return sort.stream()
                 .map(order -> order.getProperty() + " " + order.getDirection())
                 .collect(Collectors.joining(", "));
     }
 
+    /**
+     * Formats a sql.
+     *
+     * @param sql must not be {@literal null}.
+     * @return
+     */
     private String formatBaseQuery(String sql) {
         sql = sql.trim();
         if (sql.endsWith(";")) {
@@ -115,6 +173,12 @@ public class StringQuery {
         return sql;
     }
 
+    /**
+     * Removes semicolon if the sql end with it.
+     *
+     * @param sql
+     * @return
+     */
     private String sanitize(String sql) {
         if (sql != null) {
             sql = sql.trim();

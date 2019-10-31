@@ -204,5 +204,10 @@ public abstract class PropertyHandler {
         return target;
     }
 
+    /**
+     * Determines the field is cascade.
+     *
+     * @return
+     */
     public abstract boolean isCascade();
 }

@@ -24,7 +24,7 @@ import org.springframework.data.repository.query.RepositoryQuery;
 import java.util.EmptyStackException;
 
 /**
- * Base class for @link {@link RepositoryQuery}s.
+ * Abstract base class to implement {@link RepositoryQuery}s.
  *
  * @author xxcxy
  */
@@ -34,6 +34,13 @@ public abstract class AbstractOrientdbRepositoryQuery implements RepositoryQuery
     protected final OrientdbEntityManager em;
     protected final NamedQueries namedQueries;
 
+    /**
+     * Creates a new {@link AbstractOrientdbRepositoryQuery} from the given {@link OrientdbQueryMethod}.
+     *
+     * @param method
+     * @param em
+     * @param namedQueries
+     */
     protected AbstractOrientdbRepositoryQuery(final OrientdbQueryMethod method, final OrientdbEntityManager em,
                                               final NamedQueries namedQueries) {
 
@@ -42,8 +49,18 @@ public abstract class AbstractOrientdbRepositoryQuery implements RepositoryQuery
         this.namedQueries = namedQueries;
     }
 
+    /**
+     * Returns a {@link StringQuery}
+     *
+     * @param parameters
+     * @return
+     */
     protected abstract StringQuery getQuery(Object[] parameters);
 
+    /*
+     * (non-Javadoc)
+     * @see org.springframework.data.repository.query.RepositoryQuery#execute(java.lang.Object[])
+     */
     @Override
     public Object execute(Object[] parameters) {
 
@@ -57,14 +74,32 @@ public abstract class AbstractOrientdbRepositoryQuery implements RepositoryQuery
         return doExecute(stringQuery, parameters, queryMethod.getEntityInformation());
     }
 
+    /**
+     * Executes a query.
+     *
+     * @param params            must not be {@literal null}.
+     * @param parameters        must not be {@literal null}.
+     * @param entityInformation must not be {@literal null}.
+     * @return
+     */
     protected abstract Object doExecute(StringQuery params, Object[] parameters,
                                         OrientdbEntityInformation<?, ?> entityInformation);
 
+    /*
+     * (non-Javadoc)
+     * @see org.springframework.data.repository.query.RepositoryQuery#getQueryMethod()
+     */
     @Override
     public OrientdbQueryMethod getQueryMethod() {
         return queryMethod;
     }
 
+    /**
+     * Returns a {@link OrientdbQueryExecution}
+     *
+     * @param accessor must not be {@literal null}.
+     * @return
+     */
     protected OrientdbQueryExecution getExecution(ParameterAccessor accessor) {
         if (queryMethod.isStreamQuery()) {
             return new OrientdbQueryExecution.CollectionExecution(em, accessor);
