@@ -90,13 +90,23 @@ public class StringQuery {
      * @param forSlicing must not be {@literal null}.
      * @return
      */
-    public String getSql(Pageable pageable, boolean forSlicing) {
+    public String getSql(final Pageable pageable, final boolean forSlicing) {
         String result = sql;
         if (pageable.isPaged() && pageable.getSort() != null && pageable.getSort() != Sort.unsorted()) {
             result = addSorting(result, pageable.getSort());
         }
         result = addPaging(result, pageable, forSlicing);
         return result;
+    }
+
+    /**
+     * Gets a sql with given {@line Sort}
+     *
+     * @param sort
+     * @return
+     */
+    public String getSql(final Sort sort) {
+        return addSorting(sql, sort);
     }
 
     /**

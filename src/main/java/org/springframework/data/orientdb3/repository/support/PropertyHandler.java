@@ -60,7 +60,11 @@ public abstract class PropertyHandler {
         }
         OType type = getOrientdbType(clazz);
         if (type == OType.EMBEDDED) {
-            return new OrientdbEntityInformation(clazz, parserHolder).convertToORecord(value, session, converted);
+            if (isCascade()) {
+                return new OrientdbEntityInformation(clazz, parserHolder).convertToORecord(value, session, converted);
+            } else {
+                return new OrientdbEntityInformation(clazz, parserHolder).getElement(value, session, converted);
+            }
         }
         return value;
     }

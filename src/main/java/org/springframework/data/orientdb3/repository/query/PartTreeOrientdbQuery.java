@@ -175,7 +175,8 @@ public class PartTreeOrientdbQuery extends AbstractOrientdbRepositoryQuery {
     private int convertPart(final Part part, final List<String> andString,
                             final int parameterIndex, final Object[] parameters) {
         Part.Type type = part.getType();
-        String key = part.getProperty().toDotPath();
+        String key = queryMethod.getEntityInformation()
+                .getPropertyHandler(part.getProperty().toDotPath()).getPropertyName();
         if (type == Part.Type.BETWEEN) {
             andString.add(" " + key + " BETWEEN ? and ? ");
         } else if (type == Part.Type.AFTER) {

@@ -33,6 +33,8 @@ import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertThat;
+import static org.springframework.data.domain.Sort.Direction.ASC;
+import static org.springframework.data.domain.Sort.Direction.DESC;
 
 @ContextConfiguration(classes = QueryRepositoryTest.config.class)
 public class QueryRepositoryTest extends RepositoryTestBase {
@@ -255,9 +257,22 @@ public class QueryRepositoryTest extends RepositoryTestBase {
     @Test
     public void should_find_page() {
         prepareListData();
-        Page<QueryElement> p = queryElementRepository.findByName("name", PageRequest.of(2, 5));
+        Page<QueryElement> p = queryElementRepository.findByName("name", PageRequest.of(2, 5,
+                Sort.by(DESC, "description")));
         assertThat(p.getTotalElements(), is(20L));
         assertThat(p.getContent().size(), is(5));
+    }
+
+    @Test
+    public void should_find_list_of_sort() {
+        prepareListData();
+        List<QueryElement> s = queryElementRepository.findSortByName("name", Sort.by(ASC, "description"));
+        assertThat(s.get(0).getDescription(), is("desc0"));
+        assertThat(s.get(19).getDescription(), is("desc9"));
+
+        List<QueryElement> d = queryElementRepository.findSortByName("name", Sort.by(DESC, "description"));
+        assertThat(d.get(0).getDescription(), is("desc9"));
+        assertThat(d.get(19).getDescription(), is("desc0"));
     }
 
     @Test

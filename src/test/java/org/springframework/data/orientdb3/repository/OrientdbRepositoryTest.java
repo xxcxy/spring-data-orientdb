@@ -51,6 +51,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThat;
+import static org.springframework.data.orientdb3.test.sample.EnValue.FIRST;
 
 @ContextConfiguration(classes = OrientdbRepositoryTest.config.class)
 public class OrientdbRepositoryTest extends RepositoryTestBase {
@@ -107,12 +108,16 @@ public class OrientdbRepositoryTest extends RepositoryTestBase {
         elementObject.setNames(Arrays.asList("name1", "name2"));
         elementObject.setMaps(getMap());
         elementObject.setSets(getSetString());
+        elementObject.setEnValue(FIRST);
 
         elementObject = elementRepository.save(elementObject);
 
         ElementObject findObject = elementRepository.findById(elementObject.getId()).get();
         assertThat(findObject.getLength(), is(5L));
         assertThat(findObject.getType(), is("stringType"));
+
+        // Verify enum property
+        assertThat(findObject.getEnValue(), is(FIRST));
 
         // Verify embedded property
         assertThat(findObject.getNames(), hasItems("name1", "name2"));

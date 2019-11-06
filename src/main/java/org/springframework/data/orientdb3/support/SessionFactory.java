@@ -18,6 +18,7 @@ import org.springframework.data.orientdb3.repository.ElementEntity;
 import org.springframework.data.orientdb3.repository.EmbeddedEntity;
 import org.springframework.data.orientdb3.repository.EntityProperty;
 import org.springframework.data.orientdb3.repository.FromVertex;
+import org.springframework.data.orientdb3.repository.Index;
 import org.springframework.data.orientdb3.repository.Link;
 import org.springframework.data.orientdb3.repository.OrientdbId;
 import org.springframework.data.orientdb3.repository.ToVertex;
@@ -86,15 +87,42 @@ public class SessionFactory {
     public void generateSchema(final ODatabaseSession session, final String entityScanPackage) {
         Map<String, OClass> processed = new HashMap<>();
         Map<String, Consumer<OClass>> postProcess = new HashMap<>();
-        for (Class clazz : getClasses(entityScanPackage)) {
+        List<Class> classes = getClasses(entityScanPackage);
+        for (Class clazz : classes) {
             generateSchema(session, clazz, processed, postProcess);
         }
 
-        // Set relationships if a class was processed before it's relation class.
+        // Sets relationships if a class was processed before it's relation class.
         for (String className : postProcess.keySet()) {
             postProcess.get(className).accept(processed.get(className));
         }
+
+        // Creates index
+        for (Class clazz : classes) {
+            generateIndex(session, clazz);
+        }
+
         session.close();
+    }
+
+    /**
+     * Creates index.
+     *
+     * @param session
+     * @param clazz
+     */
+    private void generateIndex(final ODatabaseSession session, final Class clazz) {
+        String className = getClassName(clazz);
+        for (Index index : getIndex(clazz)) {
+            if (!session.getMetadata().getIndexManager().existsIndex(index.name())) {
+                StringBuilder indexSql = new StringBuilder("CREATE INDEX ");
+                indexSql.append(index.name()).append(" ON ")
+                        .append(className).append(" (")
+                        .append(index.columnList()).append(") ")
+                        .append(index.type());
+                session.command(indexSql.toString());
+            }
+        }
     }
 
     /**
@@ -314,6 +342,16 @@ public class SessionFactory {
      */
     private String getClassName(final Class<?> clazz) {
         return EntityType.getEntityType(clazz).map(e -> e.getEntityName(clazz)).orElse(clazz.getSimpleName());
+    }
+
+    /**
+     * Gets {@link Index} array.
+     *
+     * @param clazz
+     * @return
+     */
+    private Index[] getIndex(final Class<?> clazz) {
+        return EntityType.getEntityType(clazz).map(e -> e.getIndex(clazz)).orElse(new Index[0]);
     }
 
     /**

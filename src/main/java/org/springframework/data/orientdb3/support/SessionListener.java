@@ -16,6 +16,7 @@ import java.util.Set;
  */
 public class SessionListener implements ODatabaseListener {
     private static final ThreadLocal<Set<WeakReference<EntityProxyInterface>>> sessionEntitySet = new ThreadLocal();
+    private static final ThreadLocal<Boolean> isLoading = new ThreadLocal<>();
 
     /**
      * Binds the {@link EntityProxyInterface} to threadLocal.
@@ -23,6 +24,10 @@ public class SessionListener implements ODatabaseListener {
      * @param entityProxyInterface
      */
     public static void bindEntityProxy(final EntityProxyInterface entityProxyInterface) {
+        Boolean loading = isLoading.get();
+        if (loading != null && loading) {
+            return;
+        }
         Set<WeakReference<EntityProxyInterface>> set = sessionEntitySet.get();
         if (set == null) {
             set = new HashSet<>();
@@ -37,6 +42,7 @@ public class SessionListener implements ODatabaseListener {
      */
     @Override
     public void onBeforeTxCommit(final ODatabase oDatabase) {
+        isLoading.set(true);
         Set<WeakReference<EntityProxyInterface>> set = sessionEntitySet.get();
         if (set == null) {
             return;

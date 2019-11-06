@@ -9,7 +9,7 @@ public class VertexInterrelatedOne {
     @OrientdbId
     private String id;
     private String name;
-    @Edge
+    @Edge(cascade = true)
     private VertexInterrelatedTwo two;
 
     public VertexInterrelatedTwo getTwo() {

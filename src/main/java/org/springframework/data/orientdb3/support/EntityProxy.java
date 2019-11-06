@@ -87,7 +87,7 @@ public class EntityProxy<T> implements MethodInterceptor {
             loadId();
         } else if (methodName.equals("loadStable")) {
             if (!isLoaded) {
-                load(o);
+                load();
             }
         } else if (isLoaded) {
             return method.invoke(target, objects);
@@ -116,17 +116,20 @@ public class EntityProxy<T> implements MethodInterceptor {
     /**
      * Loads value to the target field.
      */
-    private void load(final Object entityProxy) {
+    private void load() {
         isLoaded = true;
+        loadId();
         for (PropertyHandler ph : info.getAllPropertyHandlers()) {
             Field field = ph.getPropertyField();
 
             if (updateField.containsKey(field.getName())) {
                 setField(field, target, updateField.get(field.getName()));
             } else {
-                Object value = getPropertyValue(entityProxy, ph, field.getName());
-                setField(field, target, value);
-                setPropertyLoad(value);
+                Object value = ph.getPropertyInJavaType(oElement, gotObjects);
+                if (value != null) {
+                    setField(field, target, value);
+                    setPropertyLoad(value);
+                }
             }
         }
     }

@@ -212,17 +212,22 @@ public class VertexPropertyHandler extends PropertyHandler {
     public Object getPropertyInJavaType(final OElement oElement, final Map<OElement, Object> converted) {
         OVertex oVertex = oElement.asVertex().orElseThrow(() -> new EntityConvertException("Must be a OVertex"));
         if (isEdge) {
-            Iterable<OEdge> edges = oVertex.getEdges(getEdgeDirection(), getEdgeName());
+            ODirection direction = getEdgeDirection();
+            Iterable<OEdge> edges = oVertex.getEdges(direction, getEdgeName());
+
             if (oType == EMBEDDED) {
                 for (OEdge oEdge : edges) {
-                    return convertToJavaProperty(parserHolder, field.getType(), oEdge.getTo(), converted);
+                    return convertToJavaProperty(parserHolder, field.getType(),
+                            oEdge.getVertex(direction.opposite()), converted);
                 }
             } else if (oType == EMBEDDEDLIST) {
                 return convertCollection(edges, new ArrayList<>(),
-                        (type, obj) -> convertToJavaProperty(parserHolder, type, ((OEdge) obj).getTo(), converted));
+                        (type, obj) -> convertToJavaProperty(parserHolder, type,
+                                ((OEdge) obj).getVertex(direction.opposite()), converted));
             } else if (oType == EMBEDDEDSET) {
                 return convertCollection(edges, new HashSet<>(),
-                        (type, obj) -> convertToJavaProperty(parserHolder, type, ((OEdge) obj).getTo(), converted));
+                        (type, obj) -> convertToJavaProperty(parserHolder, type,
+                                ((OEdge) obj).getVertex(direction.opposite()), converted));
             }
         }
         if (oType == EMBEDDED) {
@@ -242,6 +247,6 @@ public class VertexPropertyHandler extends PropertyHandler {
      */
     @Override
     public boolean isCascade() {
-        return isCascade;
+        return isEmbedded || isCascade;
     }
 }

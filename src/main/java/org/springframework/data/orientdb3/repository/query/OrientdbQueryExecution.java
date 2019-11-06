@@ -191,6 +191,33 @@ public abstract class OrientdbQueryExecution {
     }
 
     /**
+     * Executes the {@link OrientdbQueryExecution} to return a collection with sorted of entities.
+     */
+    static final class SortedExecution extends OrientdbQueryExecution {
+        /**
+         * Creates a new {@link SortedExecution}.
+         *
+         * @param entityManager
+         * @param accessor
+         */
+        SortedExecution(OrientdbEntityManager entityManager, ParameterAccessor accessor) {
+            super(entityManager, accessor);
+        }
+
+        /*
+         * (non-Javadoc)
+         * @see OrientdbQueryExecution.doExecute()
+         */
+        @Override
+        protected Object doExecute(final OrientdbEntityManager em, final ParameterAccessor accessor,
+                                   final StringQuery stringQuery, final Class<?> type,
+                                   final OrientdbEntityInformation<?, ?> entityInformation) {
+            return doQuery(stringQuery.getSql(accessor.getSort()),
+                    stringQuery.getParameters(), type, entityInformation);
+        }
+    }
+
+    /**
      * Executes the query to return a {@link Slice} of entities.
      */
     static final class SlicedExecution extends OrientdbQueryExecution {

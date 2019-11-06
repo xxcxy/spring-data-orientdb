@@ -3,6 +3,7 @@ package org.springframework.data.orientdb3.test.sample;
 import org.springframework.data.orientdb3.repository.ElementEntity;
 import org.springframework.data.orientdb3.repository.Embedded;
 import org.springframework.data.orientdb3.repository.EntityProperty;
+import org.springframework.data.orientdb3.repository.Index;
 import org.springframework.data.orientdb3.repository.Link;
 import org.springframework.data.orientdb3.repository.OrientdbId;
 
@@ -10,7 +11,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-@ElementEntity
+@ElementEntity(indexes = {@Index(name = "ElementObject.lengthAndType", columnList = "size,type",
+        type = Index.NOTUNIQUE),
+        @Index(name = "ElementObject.type", columnList = "type", type = Index.FULLTEXT)})
 public class ElementObject {
     @OrientdbId
     private String id;
@@ -23,14 +26,15 @@ public class ElementObject {
     private Set<String> sets;
     @Embedded
     private Map<String, Long> maps;
-    @Link
+    @Link(cascade = true)
     private List<SimpleElement> elementList;
-    @Link
+    @Link(cascade = true)
     private Set<SimpleElement> elementSet;
-    @Link
+    @Link(cascade = true)
     private Map<String, SimpleElement> elementMap;
     @Embedded
     private Pojo pojo;
+    private EnValue enValue;
 
     public void setId(final String id) {
         this.id = id;
@@ -110,5 +114,13 @@ public class ElementObject {
 
     public Map<String, SimpleElement> getElementMap() {
         return elementMap;
+    }
+
+    public EnValue getEnValue() {
+        return enValue;
+    }
+
+    public void setEnValue(final EnValue enValue) {
+        this.enValue = enValue;
     }
 }

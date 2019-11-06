@@ -11,10 +11,10 @@ public class VertexWithEdges {
     @OrientdbId
     private String id;
     private String type;
-    @Edge
+    @Edge(cascade = true)
     private List<VertexTarget> targets;
 
-    @Edge
+    @Edge(cascade = true)
     private VertexSource source;
 
     public void setId(final String id) {

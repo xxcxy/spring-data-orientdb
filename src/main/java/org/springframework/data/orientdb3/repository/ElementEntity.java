@@ -21,4 +21,11 @@ public @interface ElementEntity {
      * @return
      */
     String name() default "";
+
+    /**
+     * Configures the index.
+     *
+     * @return
+     */
+    Index[] indexes() default {};
 }

@@ -14,9 +14,15 @@ import org.springframework.data.orientdb3.repository.support.OrientdbEntityInfor
 import org.springframework.data.orientdb3.transaction.SessionHolder;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.ParameterizedType;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -205,7 +211,7 @@ public class OrientdbEntityManager {
     public <T> List<T> doQuery(final String query, final Object[] parameters, final Class<T> type) {
         showSql(query, parameters);
         return doWithSession(session ->
-                session.query(query, parameters).stream().map(oResult -> convert(oResult, type))
+                session.query(query, parameters).stream().map(oResult -> convert(oResult, type, true))
                         .collect(Collectors.toList()));
     }
 
@@ -217,23 +223,102 @@ public class OrientdbEntityManager {
      * @param <T>
      * @return
      */
-    private <T> T convert(final OResult oResult, final Class<T> clazz) {
-        if (clazz.getAnnotation(QueryResult.class) == null) {
+    private <T> T convert(final OResult oResult, final Class<T> clazz, final boolean checkAnnotation) {
+        if (checkAnnotation && clazz.getAnnotation(QueryResult.class) == null) {
             LOG.error("Projection class must have a QueryResult annotation!");
             return null;
         }
         try {
             T dto = clazz.newInstance();
-            doWithFields(clazz, field -> {
-                field.setAccessible(true);
-                Object obj = oResult.getProperty(field.getName());
-                setField(field, dto, OType.convert(obj, field.getType()));
-            });
+            fillObject(dto, clazz, name -> oResult.getProperty(name));
             return dto;
         } catch (Exception e) {
             LOG.error("Create new dto error: ", e);
         }
         return null;
+    }
+
+    /**
+     * Converts a {@link OElement} to a java type object.
+     *
+     * @param oElement
+     * @param clazz
+     * @param <T>
+     * @return
+     */
+    private <T> T convert(final OElement oElement, final Class<T> clazz) {
+        try {
+            T dto = clazz.newInstance();
+            fillObject(dto, clazz, name -> oElement.getProperty(name));
+            return dto;
+        } catch (Exception e) {
+            LOG.error("Create new dto error: ", e);
+        }
+        return null;
+    }
+
+    /**
+     * Sets a java object's field value.
+     *
+     * @param t
+     * @param clazz
+     * @param function
+     * @param <T>
+     */
+    private <T> void fillObject(final T t, final Class<T> clazz, final Function<String, Object> function) {
+        doWithFields(clazz, field -> {
+            field.setAccessible(true);
+            Class fieldType = field.getType();
+            Object obj = function.apply(field.getName());
+            if (List.class.isAssignableFrom(fieldType)) {
+                setField(field, t, convertCollection(new ArrayList(), (Iterable) obj, field));
+            } else if (Set.class.isAssignableFrom(fieldType)) {
+                setField(field, t, convertCollection(new HashSet(), (Iterable) obj, field));
+            } else if (Map.class.isAssignableFrom(fieldType)) {
+                Class type = (Class) ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[1];
+                Map map = new HashMap<String, Object>();
+                for (Map.Entry<String, Object> entry : ((Map<String, Object>) obj).entrySet()) {
+                    map.put(entry.getKey(), convertToJavaType(entry.getValue(), type));
+                }
+                setField(field, t, map);
+            } else {
+                setField(field, t, convertToJavaType(obj, fieldType));
+            }
+        });
+    }
+
+    /**
+     * Converts a orientdb's iterable to a java collection.
+     *
+     * @param collection
+     * @param iterable
+     * @param field
+     * @return
+     */
+    private Object convertCollection(final Collection collection, final Iterable iterable, final Field field) {
+        Class type = (Class) ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[0];
+        for (Object oc : iterable) {
+            collection.add(convertToJavaType(oc, type));
+        }
+        return collection;
+    }
+
+    /**
+     * Converts a orientdb object to a java object.
+     *
+     * @param orientObj
+     * @param javaType
+     * @return
+     */
+    private Object convertToJavaType(final Object orientObj, final Class javaType) {
+        if (orientObj == null) {
+            return null;
+        } else if (OType.isSimpleType(orientObj)) {
+            return OType.convert(orientObj, javaType);
+        } else if (orientObj instanceof OElement) {
+            return convert((OElement) orientObj, javaType);
+        }
+        return convert((OResult) orientObj, javaType, false);
     }
 
     /**

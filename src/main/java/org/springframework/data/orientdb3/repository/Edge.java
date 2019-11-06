@@ -37,5 +37,5 @@ public @interface Edge {
      *
      * @return
      */
-    boolean cascade() default true;
+    boolean cascade() default false;
 }

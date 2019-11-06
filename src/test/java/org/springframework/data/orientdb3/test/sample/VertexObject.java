@@ -10,10 +10,10 @@ public class VertexObject {
     @OrientdbId
     private String id;
     private String type;
-    @Edge(name = "TestOutgoing")
+    @Edge(name = "TestOutgoing", cascade = true)
     private VertexTarget target;
 
-    @Edge(direction = Edge.INCOMING, name = "TestIncoming")
+    @Edge(direction = Edge.INCOMING, name = "TestIncoming", cascade = true)
     private VertexSource source;
 
     public String getId() {

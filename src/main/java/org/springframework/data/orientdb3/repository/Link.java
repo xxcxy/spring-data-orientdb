@@ -20,5 +20,5 @@ public @interface Link {
      *
      * @return
      */
-    boolean cascade() default true;
+    boolean cascade() default false;
 }

@@ -240,10 +240,13 @@ public class OrientdbEntityInformation<T, ID> implements EntityInformation<T, ID
      * @param converted
      * @return
      */
-    private OElement getElement(final T entity, final ODatabaseSession session, final Map<Object, OElement> converted) {
+    public OElement getElement(final T entity, final ODatabaseSession session, final Map<Object, OElement> converted) {
         if (isNew(entity)) {
             return newOElement(entity, session, converted);
         } else {
+            if (entity instanceof EntityProxyInterface) {
+                return ((EntityProxyInterface) entity).findOElement();
+            }
             return session.load(getORID(entity));
         }
     }

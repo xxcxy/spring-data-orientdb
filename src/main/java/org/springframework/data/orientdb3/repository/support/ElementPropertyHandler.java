@@ -144,6 +144,6 @@ public class ElementPropertyHandler extends PropertyHandler {
      */
     @Override
     public boolean isCascade() {
-        return isCascade;
+        return isEmbedded || isCascade;
     }
 }

@@ -2,6 +2,7 @@ package org.springframework.data.orientdb3.test.sample.repository;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.orientdb3.repository.OrientdbRepository;
 import org.springframework.data.orientdb3.test.sample.QueryElement;
 
@@ -66,6 +67,8 @@ public interface QueryElementRepository extends OrientdbRepository<QueryElement,
     Optional<QueryElement> findOptionByName(String s);
 
     Page<QueryElement> findByName(String name, Pageable page);
+
+    List<QueryElement> findSortByName(String name, Sort sort);
 
     Iterable<QueryElement> findIterableByName(String name);
 

@@ -3,6 +3,7 @@ package org.springframework.data.orientdb3.repository.support;
 import org.springframework.data.orientdb3.repository.EdgeEntity;
 import org.springframework.data.orientdb3.repository.ElementEntity;
 import org.springframework.data.orientdb3.repository.EmbeddedEntity;
+import org.springframework.data.orientdb3.repository.Index;
 import org.springframework.data.orientdb3.repository.VertexEntity;
 import org.springframework.util.StringUtils;
 
@@ -27,6 +28,15 @@ public enum EntityType {
             return Optional.of(clazz.getAnnotation(ElementEntity.class).name())
                     .filter(s -> !StringUtils.isEmpty(s));
         }
+
+        /*
+         * (non-Javadoc)
+         * @see EntityType#getIndex
+         */
+        @Override
+        public <T> Index[] getIndex(final Class<T> clazz) {
+            return clazz.getAnnotation(ElementEntity.class).indexes();
+        }
     },
     /**
      * Represents vertexEntity.
@@ -40,6 +50,15 @@ public enum EntityType {
         protected <T> Optional<String> getName(final Class<T> clazz) {
             return Optional.of(clazz.getAnnotation(VertexEntity.class).name())
                     .filter(s -> !StringUtils.isEmpty(s));
+        }
+
+        /*
+         * (non-Javadoc)
+         * @see EntityType#getIndex
+         */
+        @Override
+        public <T> Index[] getIndex(final Class<T> clazz) {
+            return clazz.getAnnotation(VertexEntity.class).indexes();
         }
     },
     /**
@@ -55,6 +74,15 @@ public enum EntityType {
             return Optional.of(clazz.getAnnotation(EdgeEntity.class).name())
                     .filter(s -> !StringUtils.isEmpty(s));
         }
+
+        /*
+         * (non-Javadoc)
+         * @see EntityType#getIndex
+         */
+        @Override
+        public <T> Index[] getIndex(final Class<T> clazz) {
+            return clazz.getAnnotation(EdgeEntity.class).indexes();
+        }
     },
     /**
      * Represents embeddedElementEntity.
@@ -68,6 +96,15 @@ public enum EntityType {
         protected <T> Optional<String> getName(final Class<T> clazz) {
             return Optional.of(clazz.getAnnotation(EmbeddedEntity.class).name())
                     .filter(s -> !StringUtils.isEmpty(s));
+        }
+
+        /*
+         * (non-Javadoc)
+         * @see EntityType#getIndex
+         */
+        @Override
+        public <T> Index[] getIndex(final Class<T> clazz) {
+            return new Index[0];
         }
     };
 
@@ -90,6 +127,15 @@ public enum EntityType {
     public <T> String getEntityName(final Class<T> clazz) {
         return getName(clazz).orElse(clazz.getSimpleName());
     }
+
+    /**
+     * Gets the entity's index config.
+     *
+     * @param clazz
+     * @param <T>
+     * @return
+     */
+    public abstract <T> Index[] getIndex(final Class<T> clazz);
 
     /**
      * Gets a entity's type.

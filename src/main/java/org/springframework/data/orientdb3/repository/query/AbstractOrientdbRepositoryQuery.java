@@ -108,6 +108,9 @@ public abstract class AbstractOrientdbRepositoryQuery implements RepositoryQuery
             return new OrientdbQueryExecution.ModifyingExecution(em, accessor);
         }
         if (queryMethod.isCollectionQuery()) {
+            if (accessor.getSort() != null) {
+                return new OrientdbQueryExecution.SortedExecution(em, accessor);
+            }
             return new OrientdbQueryExecution.CollectionExecution(em, accessor);
         }
         if (queryMethod.isPageQuery()) {

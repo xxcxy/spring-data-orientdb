@@ -1,6 +1,6 @@
 package org.springframework.data.orientdb3.repository.support;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mapping.context.MappingContext;
 import org.springframework.data.orientdb3.support.OrientdbEntityManager;
 import org.springframework.data.orientdb3.support.SessionFactory;
 import org.springframework.data.repository.Repository;
@@ -35,7 +35,6 @@ public class OrientdbRepositoryFactoryBean<T extends Repository<S, ID>, S, ID>
      *
      * @param sessionFactory must not be {@literal null}.
      */
-    @Autowired
     public void setSessionFactory(final SessionFactory sessionFactory) {
         this.sessionFactory = sessionFactory;
     }
@@ -45,7 +44,6 @@ public class OrientdbRepositoryFactoryBean<T extends Repository<S, ID>, S, ID>
      *
      * @param orientdbIdParserHolder must not be {@literal null}.
      */
-    @Autowired
     public void setOrientdbIdParserHolder(final OrientdbIdParserHolder orientdbIdParserHolder) {
         this.orientdbIdParserHolder = orientdbIdParserHolder;
     }
@@ -62,10 +60,19 @@ public class OrientdbRepositoryFactoryBean<T extends Repository<S, ID>, S, ID>
         return createRepositoryFactory(sessionFactory);
     }
 
+    /*
+     * (non-Javadoc)
+     * @see org.springframework.data.repository.core.support.RepositoryFactoryBeanSupport#setMappingContext(org.springframework.data.mapping.context.MappingContext)
+     */
+    @Override
+    public void setMappingContext(final MappingContext<?, ?> mappingContext) {
+        super.setMappingContext(mappingContext);
+    }
+
     /**
      * Returns a {@link RepositoryFactorySupport}.
      */
-    protected RepositoryFactorySupport createRepositoryFactory(SessionFactory sessionFactory) {
+    protected RepositoryFactorySupport createRepositoryFactory(final SessionFactory sessionFactory) {
         return new OrientdbRepositoryFactory(new OrientdbEntityManager(sessionFactory), orientdbIdParserHolder);
     }
 }

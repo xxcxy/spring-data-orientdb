@@ -44,6 +44,8 @@ public class OrientdbRepositoryConfigurationExtension extends RepositoryConfigur
      * See {@link AbstractBeanDefinition#INFER_METHOD}.
      */
     private static final String DEFAULT_SESSION_FACTORY_BEAN_NAME = "sessionFactory";
+    private static final String DEFAULT_MAPPING_CONTEXT_BEAN_NAME = "mappingContext";
+    private static final String DEFAULT_ID_PARSER_HOLDER = "orientdbIdParserHolder";
     private static final String DEFAULT_TRANSACTION_MANAGER_BEAN_NAME = "transactionManager";
     private static final String ENABLE_DEFAULT_TRANSACTIONS_ATTRIBUTE = "enableDefaultTransactions";
     private static final String DEFAULT_DB_CONFIG_BEAN_NAME = "orientdbConfig";
@@ -103,6 +105,9 @@ public class OrientdbRepositoryConfigurationExtension extends RepositoryConfigur
         Optional<String> transactionManagerRef = source.getAttribute("transactionManagerRef");
         builder.addPropertyValue("transactionManager",
                 transactionManagerRef.orElse(DEFAULT_TRANSACTION_MANAGER_BEAN_NAME));
+        builder.addPropertyReference("sessionFactory", DEFAULT_SESSION_FACTORY_BEAN_NAME);
+        builder.addPropertyReference("mappingContext", DEFAULT_MAPPING_CONTEXT_BEAN_NAME);
+        builder.addPropertyReference("orientdbIdParserHolder", DEFAULT_ID_PARSER_HOLDER);
     }
 
     /*
@@ -151,10 +156,12 @@ public class OrientdbRepositoryConfigurationExtension extends RepositoryConfigur
         registerIfNotAlreadyRegistered(() -> BeanDefinitionBuilder.rootBeanDefinition(OrientdbIdParserHolder.class)
                 .setAutowireMode(AbstractBeanDefinition.AUTOWIRE_BY_TYPE)
                 .addConstructorArgValue(new StringIdParser())
-                .getBeanDefinition(), registry, "orientdbIdParserHolder", source);
+                .getBeanDefinition(), registry, DEFAULT_ID_PARSER_HOLDER, source);
         registerLazyIfNotAlreadyRegistered(
                 () -> new RootBeanDefinition(CollectOrientdbIdParserPostProcessor.class), registry,
                 "collectOrientdbIdParserPostProcessor", source);
+        registerLazyIfNotAlreadyRegistered(() -> new RootBeanDefinition(OrientdbMappingContextFactoryBean.class),
+                registry, DEFAULT_MAPPING_CONTEXT_BEAN_NAME, source);
     }
 
 }
