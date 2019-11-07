@@ -121,15 +121,13 @@ public class EntityProxy<T> implements MethodInterceptor {
         loadId();
         for (PropertyHandler ph : info.getAllPropertyHandlers()) {
             Field field = ph.getPropertyField();
-
-            if (updateField.containsKey(field.getName())) {
-                setField(field, target, updateField.get(field.getName()));
-            } else {
-                Object value = ph.getPropertyInJavaType(oElement, gotObjects);
-                if (value != null) {
-                    setField(field, target, value);
-                    setPropertyLoad(value);
-                }
+            Object value = updateField.get(field.getName());
+            if (value == null) {
+                value = ph.getPropertyInJavaType(oElement, gotObjects);
+            }
+            if (value != null) {
+                setField(field, target, value);
+                setPropertyLoad(value);
             }
         }
     }
@@ -211,7 +209,6 @@ public class EntityProxy<T> implements MethodInterceptor {
         } else {
             oElement.save();
         }
-        updateField.clear();
         inSaving = false;
         return oElement;
     }

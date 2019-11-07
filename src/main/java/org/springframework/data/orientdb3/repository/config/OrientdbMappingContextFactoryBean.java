@@ -15,9 +15,19 @@
  */
 package org.springframework.data.orientdb3.repository.config;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.config.AbstractFactoryBean;
+import org.springframework.beans.factory.config.BeanDefinition;
+import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
+import org.springframework.core.type.filter.AnnotationTypeFilter;
+import org.springframework.data.orientdb3.repository.QueryResult;
 import org.springframework.data.orientdb3.repository.mapping.OrientdbMappingContext;
+import org.springframework.util.StringUtils;
+
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * {@link FactoryBean} to setup {@link OrientdbMappingContext} instances from Spring configuration.
@@ -27,6 +37,12 @@ import org.springframework.data.orientdb3.repository.mapping.OrientdbMappingCont
  * @author Michael J. Simons
  */
 public class OrientdbMappingContextFactoryBean extends AbstractFactoryBean<OrientdbMappingContext> {
+    private static final Logger LOG = LoggerFactory.getLogger(OrientdbMappingContextFactoryBean.class);
+    private final String projectionScanPackage = "com.example.springdataorientdbdemo.dto";
+
+//    public OrientdbMappingContextFactoryBean(final IOrientdbConfig orientdbConfig) {
+//        projectionScanPackage = orientdbConfig.getProjectionScanPackage();
+//    }
 
     /*
      * (non-Javadoc)
@@ -44,8 +60,32 @@ public class OrientdbMappingContextFactoryBean extends AbstractFactoryBean<Orien
     @Override
     protected OrientdbMappingContext createInstance() {
         OrientdbMappingContext context = new OrientdbMappingContext();
+        if (!StringUtils.isEmpty(projectionScanPackage)) {
+            context.setInitialEntitySet(getClasses(projectionScanPackage));
+        }
         context.initialize();
         return context;
     }
 
+    /**
+     * Scans a package and find all specified classes.
+     *
+     * @param scanPackage
+     * @return
+     */
+    private Set<? extends Class<?>> getClasses(final String scanPackage) {
+        ClassPathScanningCandidateComponentProvider provider = new ClassPathScanningCandidateComponentProvider(false);
+        provider.addIncludeFilter(new AnnotationTypeFilter(QueryResult.class));
+        Set<BeanDefinition> beanDefinitionSet = provider.findCandidateComponents(scanPackage);
+        Set<Class<?>> entityClasses = new HashSet<>();
+        for (BeanDefinition beanDefinition : beanDefinitionSet) {
+            String beanClassName = beanDefinition.getBeanClassName();
+            try {
+                entityClasses.add(Class.forName(beanClassName));
+            } catch (ClassNotFoundException e) {
+                LOG.error("Create class: {}'s persistent info error: ", beanClassName, e);
+            }
+        }
+        return entityClasses;
+    }
 }

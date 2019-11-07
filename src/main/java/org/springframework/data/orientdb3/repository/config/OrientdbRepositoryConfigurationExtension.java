@@ -30,6 +30,8 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Optional;
 
+import static org.springframework.beans.factory.support.AbstractBeanDefinition.AUTOWIRE_BY_TYPE;
+
 /**
  * Orientdb specific configuration extension parsing custom attributes from the XML namespace and
  * {@link EnableOrientdbRepositories} annotation.
@@ -148,20 +150,24 @@ public class OrientdbRepositoryConfigurationExtension extends RepositoryConfigur
 
         Object source = config.getSource();
         registerIfNotAlreadyRegistered(() -> BeanDefinitionBuilder.rootBeanDefinition(SessionFactory.class)
-                        .setAutowireMode(AbstractBeanDefinition.AUTOWIRE_BY_TYPE)
+                        .setAutowireMode(AUTOWIRE_BY_TYPE)
                         .setDestroyMethodName("destroy")
                         .addConstructorArgReference(DEFAULT_DB_CONFIG_BEAN_NAME)
                         .getBeanDefinition(), registry,
                 DEFAULT_SESSION_FACTORY_BEAN_NAME, source);
         registerIfNotAlreadyRegistered(() -> BeanDefinitionBuilder.rootBeanDefinition(OrientdbIdParserHolder.class)
-                .setAutowireMode(AbstractBeanDefinition.AUTOWIRE_BY_TYPE)
+                .setAutowireMode(AUTOWIRE_BY_TYPE)
                 .addConstructorArgValue(new StringIdParser())
                 .getBeanDefinition(), registry, DEFAULT_ID_PARSER_HOLDER, source);
         registerLazyIfNotAlreadyRegistered(
                 () -> new RootBeanDefinition(CollectOrientdbIdParserPostProcessor.class), registry,
                 "collectOrientdbIdParserPostProcessor", source);
-        registerLazyIfNotAlreadyRegistered(() -> new RootBeanDefinition(OrientdbMappingContextFactoryBean.class),
-                registry, DEFAULT_MAPPING_CONTEXT_BEAN_NAME, source);
+        registerLazyIfNotAlreadyRegistered(() ->
+                        BeanDefinitionBuilder.rootBeanDefinition(OrientdbMappingContextFactoryBean.class)
+                                .setAutowireMode(AUTOWIRE_BY_TYPE)
+//                                .addConstructorArgReference(DEFAULT_DB_CONFIG_BEAN_NAME)
+                                .getBeanDefinition(), registry,
+                DEFAULT_MAPPING_CONTEXT_BEAN_NAME, source);
     }
 
 }

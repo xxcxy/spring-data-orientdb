@@ -21,6 +21,7 @@ public class OrientdbProperties implements IOrientdbConfig {
     private String databaseName;
     private boolean autoGenerateSchema;
     private String entityScanPackage;
+    private String projectionScanPackage;
 
     /*
      * (non-Javadoc)
@@ -94,6 +95,15 @@ public class OrientdbProperties implements IOrientdbConfig {
         return autoGenerateSchema;
     }
 
+    /*
+     * (non-Javadoc)
+     * @see IOrientdbConfig#getProjectionScanPackage()
+     */
+    @Override
+    public String getProjectionScanPackage() {
+        return projectionScanPackage;
+    }
+
     /**
      * Sets hosts.
      *
@@ -164,5 +174,14 @@ public class OrientdbProperties implements IOrientdbConfig {
      */
     public void setEntityScanPackage(final String entityScanPackage) {
         this.entityScanPackage = entityScanPackage;
+    }
+
+    /**
+     * Sets projection scan package.
+     *
+     * @param projectionScanPackage
+     */
+    public void setProjectionScanPackage(final String projectionScanPackage) {
+        this.projectionScanPackage = projectionScanPackage;
     }
 }

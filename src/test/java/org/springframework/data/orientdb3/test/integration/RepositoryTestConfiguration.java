@@ -57,6 +57,11 @@ public class RepositoryTestConfiguration {
             }
 
             @Override
+            public String getProjectionScanPackage() {
+                return null;
+            }
+
+            @Override
             public String getPassword() {
                 return "admin";
             }

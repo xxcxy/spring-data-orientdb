@@ -126,7 +126,7 @@ public class SessionFactory {
     }
 
     /**
-     * Scans a package and find all designated classes.
+     * Scans a package and find all specified classes.
      *
      * @param scanPackage
      * @return

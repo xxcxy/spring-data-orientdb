@@ -72,6 +72,8 @@ public class SessionListener implements ODatabaseListener {
                 ep.loadId();
             }
         }
+        isLoading.set(false);
+        sessionEntitySet.set(new HashSet<>());
     }
 
     /*

@@ -198,7 +198,7 @@ public class OrientdbEntityInformation<T, ID> implements EntityInformation<T, ID
             return oElement;
         } else {
             OElement oElement = newOElement(entity, session, converted);
-            converted.put(entity, oElement);
+            converted.put(new EntityProxy(entity, oElement, this, converted).getProxyInstance(), oElement);
             for (PropertyHandler propertyHandler : propertyHandlers.values()) {
                 propertyHandler.setOElementProperty(oElement,
                         getField(propertyHandler.getPropertyField(), entity), session, converted);
@@ -219,7 +219,8 @@ public class OrientdbEntityInformation<T, ID> implements EntityInformation<T, ID
     public T save(final T entity, final ODatabaseSession session, @Nullable final String cluster,
                   final Map<Object, OElement> converted) {
         OElement oElement = getElement(entity, session, converted);
-        converted.put(entity, oElement);
+        T t = (T) new EntityProxy(entity, oElement, this, new HashMap<>()).getProxyInstance();
+        converted.put(t, oElement);
         for (PropertyHandler propertyHandler : propertyHandlers.values()) {
             propertyHandler.setOElementProperty(oElement,
                     getField(propertyHandler.getPropertyField(), entity), session, converted);
@@ -229,7 +230,8 @@ public class OrientdbEntityInformation<T, ID> implements EntityInformation<T, ID
         } else {
             session.save(oElement);
         }
-        return (T) new EntityProxy(entity, oElement, this, new HashMap<>()).getProxyInstance();
+        setId(entity, oElement);
+        return t;
     }
 
     /**

@@ -61,4 +61,11 @@ public interface IOrientdbConfig {
      * @return
      */
     String getEntityScanPackage();
+
+    /**
+     * Gets the projections scan package.
+     *
+     * @return
+     */
+    String getProjectionScanPackage();
 }
