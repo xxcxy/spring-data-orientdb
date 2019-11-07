@@ -1,4 +1,4 @@
 # Auto Configure
 org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
-org.springframework.data.orientdb3.springboot.autoconfigure.OrientdbAutoConfiguration,\
-org.springframework.data.orientdb3.springboot.autoconfigure.OrientdbProperties
+org.springframework.data.orientdb3.springboot.autoconfigure.OrientdbProperties,\
+org.springframework.data.orientdb3.springboot.autoconfigure.OrientdbAutoConfiguration

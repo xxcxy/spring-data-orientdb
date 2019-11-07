@@ -18,12 +18,14 @@ package org.springframework.data.orientdb3.repository.config;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.FactoryBean;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.AbstractFactoryBean;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
 import org.springframework.core.type.filter.AnnotationTypeFilter;
 import org.springframework.data.orientdb3.repository.QueryResult;
 import org.springframework.data.orientdb3.repository.mapping.OrientdbMappingContext;
+import org.springframework.data.orientdb3.support.IOrientdbConfig;
 import org.springframework.util.StringUtils;
 
 import java.util.HashSet;
@@ -32,17 +34,16 @@ import java.util.Set;
 /**
  * {@link FactoryBean} to setup {@link OrientdbMappingContext} instances from Spring configuration.
  *
- * @author Mark Angrish
- * @author Nicolas Mervaillie
- * @author Michael J. Simons
+ * @author xxcxy
  */
 public class OrientdbMappingContextFactoryBean extends AbstractFactoryBean<OrientdbMappingContext> {
     private static final Logger LOG = LoggerFactory.getLogger(OrientdbMappingContextFactoryBean.class);
-    private final String projectionScanPackage = "com.example.springdataorientdbdemo.dto";
+    private String projectionScanPackage;
 
-//    public OrientdbMappingContextFactoryBean(final IOrientdbConfig orientdbConfig) {
-//        projectionScanPackage = orientdbConfig.getProjectionScanPackage();
-//    }
+    @Autowired
+    public void setOrientdbConfig(final IOrientdbConfig orientdbConfig) {
+        projectionScanPackage = orientdbConfig.getProjectionScanPackage();
+    }
 
     /*
      * (non-Javadoc)

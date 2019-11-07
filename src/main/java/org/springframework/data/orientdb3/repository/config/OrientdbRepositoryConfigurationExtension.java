@@ -163,10 +163,7 @@ public class OrientdbRepositoryConfigurationExtension extends RepositoryConfigur
                 () -> new RootBeanDefinition(CollectOrientdbIdParserPostProcessor.class), registry,
                 "collectOrientdbIdParserPostProcessor", source);
         registerLazyIfNotAlreadyRegistered(() ->
-                        BeanDefinitionBuilder.rootBeanDefinition(OrientdbMappingContextFactoryBean.class)
-                                .setAutowireMode(AUTOWIRE_BY_TYPE)
-//                                .addConstructorArgReference(DEFAULT_DB_CONFIG_BEAN_NAME)
-                                .getBeanDefinition(), registry,
+                        new RootBeanDefinition(OrientdbMappingContextFactoryBean.class), registry,
                 DEFAULT_MAPPING_CONTEXT_BEAN_NAME, source);
     }
 

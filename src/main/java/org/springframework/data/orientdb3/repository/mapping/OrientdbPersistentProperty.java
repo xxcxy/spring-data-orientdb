@@ -94,6 +94,16 @@ class OrientdbPersistentProperty extends AnnotationBasedPersistentProperty<Orien
         return new Association<>(this, null);
     }
 
+    /**
+     * Sets usePropertyAccess true, so it will call setter to set property and proxy can intercept.
+     *
+     * @return
+     */
+    @Override
+    public boolean usePropertyAccess() {
+        return true;
+    }
+
     /*
      * (non-Javadoc)
      * @see org.springframework.data.mapping.model.AnnotationBasedPersistentProperty#isVersionProperty()

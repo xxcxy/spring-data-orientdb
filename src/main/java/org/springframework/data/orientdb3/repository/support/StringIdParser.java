@@ -3,6 +3,9 @@ package org.springframework.data.orientdb3.repository.support;
 import com.orientechnologies.orient.core.id.ORID;
 import com.orientechnologies.orient.core.id.ORecordId;
 
+import static java.lang.Integer.parseInt;
+import static java.lang.String.valueOf;
+
 /**
  * A IdParser for String.
  *
@@ -24,7 +27,8 @@ public class StringIdParser implements OrientdbIdParser<String> {
      */
     @Override
     public ORID parseJavaId(final String s) {
-        return new ORecordId(s);
+        String[] idP = s.split("-");
+        return new ORecordId(parseInt(idP[0]), parseInt(idP[1]));
     }
 
     /*
@@ -33,6 +37,6 @@ public class StringIdParser implements OrientdbIdParser<String> {
      */
     @Override
     public String parseOrientdbId(final ORID orid) {
-        return ORecordId.generateString(orid.getClusterId(), orid.getClusterPosition());
+        return String.join("-", valueOf(orid.getClusterId()), valueOf(orid.getClusterPosition()));
     }
 }

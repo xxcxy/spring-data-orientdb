@@ -18,6 +18,8 @@ package org.springframework.data.orientdb3.repository.mapping;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.mapping.IdentifierAccessor;
+import org.springframework.data.mapping.PersistentPropertyAccessor;
+import org.springframework.data.mapping.TargetAwareIdentifierAccessor;
 import org.springframework.data.mapping.model.BasicPersistentEntity;
 import org.springframework.data.mapping.model.IdPropertyIdentifierAccessor;
 import org.springframework.data.orientdb3.support.EntityProxyInterface;
@@ -45,6 +47,10 @@ class OrientdbPersistentEntity<T> extends BasicPersistentEntity<T, OrientdbPersi
 
     }
 
+    /*
+     * (non-Javadoc)
+     * @see org.springframework.data.mapping.model.BasicPersistentEntity#getIdentifierAccessor()
+     */
     @Override
     public IdentifierAccessor getIdentifierAccessor(Object bean) {
         return new EntityProxyAwareIdentifierAccessor(this, bean);
@@ -67,10 +73,11 @@ class OrientdbPersistentEntity<T> extends BasicPersistentEntity<T, OrientdbPersi
      *
      * @author xxcxy
      */
-    private static class EntityProxyAwareIdentifierAccessor extends IdPropertyIdentifierAccessor {
+    private static class EntityProxyAwareIdentifierAccessor extends TargetAwareIdentifierAccessor {
 
         private final Object bean;
         private final OrientdbPersistentProperty idProperty;
+        private final PersistentPropertyAccessor<?> accessor;
 
         /**
          * Creates a new {@link EntityProxyAwareIdentifierAccessor} for the given {@link OrientdbPersistentEntity}
@@ -80,9 +87,10 @@ class OrientdbPersistentEntity<T> extends BasicPersistentEntity<T, OrientdbPersi
          * @param bean   must not be {@literal null}.
          */
         EntityProxyAwareIdentifierAccessor(OrientdbPersistentEntity<?> entity, Object bean) {
-            super(entity, bean);
+            super(bean);
             this.bean = bean;
-            this.idProperty = entity.getRequiredIdProperty();
+            this.idProperty = entity.getIdProperty();
+            this.accessor = entity.getPropertyAccessor(bean);
         }
 
         /*
@@ -98,7 +106,10 @@ class OrientdbPersistentEntity<T> extends BasicPersistentEntity<T, OrientdbPersi
                     LOG.error("Id property must have getter.", e);
                 }
             }
-            return super.getIdentifier();
+            if (idProperty != null) {
+                return accessor.getProperty(this.idProperty);
+            }
+            return "temporaryId";
         }
     }
 }
