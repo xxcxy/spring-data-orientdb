@@ -27,8 +27,8 @@ public class StringIdParser implements OrientdbIdParser<String> {
      */
     @Override
     public ORID parseJavaId(final String s) {
-        String[] idP = s.split("-");
-        return new ORecordId(parseInt(idP[0]), parseInt(idP[1]));
+        int index = s.indexOf('-', 1);
+        return new ORecordId(parseInt(s.substring(0, index)), parseInt(s.substring(index + 1)));
     }
 
     /*
