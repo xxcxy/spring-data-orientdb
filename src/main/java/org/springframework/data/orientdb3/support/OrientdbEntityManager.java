@@ -359,9 +359,12 @@ public class OrientdbEntityManager {
         } else {
             // If it is not in a transaction, every call use a independent session
             ODatabaseSession session = sessionFactory.openSession();
-            R r = function.apply(session);
-            session.close();
-            return r;
+            try {
+                R r = function.apply(session);
+                return r;
+            } finally {
+                session.close();
+            }
         }
     }
 
@@ -376,8 +379,11 @@ public class OrientdbEntityManager {
             consumer.accept(((SessionHolder) sessionHolder).getSession());
         } else {
             ODatabaseSession session = sessionFactory.openSession();
-            consumer.accept(session);
-            session.close();
+            try{
+                consumer.accept(session);
+            }finally {
+                session.close();
+            }
         }
     }
 

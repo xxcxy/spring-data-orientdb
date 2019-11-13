@@ -198,7 +198,7 @@ public class OrientdbEntityInformation<T, ID> implements EntityInformation<T, ID
             return oElement;
         } else {
             OElement oElement = newOElement(entity, session, converted);
-            converted.put(entity, oElement);
+            converted.put(new EntityProxy(entity, oElement, this, converted).getProxyInstance(), oElement);
             for (PropertyHandler propertyHandler : propertyHandlers.values()) {
                 propertyHandler.setOElementProperty(oElement,
                         getField(propertyHandler.getPropertyField(), entity), session, converted);

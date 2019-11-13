@@ -25,7 +25,7 @@ public class StringIdParserTest {
 
     @Test
     public void should_parse_orientdb_id() {
-        String jId = parser.parseOrientdbId(new ORecordId("1-5"));
+        String jId = parser.parseOrientdbId(new ORecordId("#1:5"));
         assertThat(jId, is("1-5"));
     }
 }

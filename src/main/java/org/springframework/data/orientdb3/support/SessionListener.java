@@ -63,16 +63,24 @@ public class SessionListener implements ODatabaseListener {
     @Override
     public void onAfterTxCommit(final ODatabase oDatabase) {
         Set<WeakReference<EntityProxyInterface>> set = sessionEntitySet.get();
-        if (set == null) {
-            return;
-        }
-        for (WeakReference<EntityProxyInterface> entityProxy : set) {
-            EntityProxyInterface ep = entityProxy.get();
-            if (ep != null) {
-                ep.loadId();
+        if (set != null) {
+            for (WeakReference<EntityProxyInterface> entityProxy : set) {
+                EntityProxyInterface ep = entityProxy.get();
+                if (ep != null) {
+                    ep.loadId();
+                }
             }
         }
         isLoading.set(false);
+        sessionEntitySet.set(new HashSet<>());
+    }
+
+    /*
+     * (non-Javadoc)
+     * @see ODatabaseListener#onAfterTxRollback()
+     */
+    @Override
+    public void onAfterTxRollback(final ODatabase oDatabase) {
         sessionEntitySet.set(new HashSet<>());
     }
 
@@ -122,14 +130,6 @@ public class SessionListener implements ODatabaseListener {
      */
     @Override
     public void onBeforeTxRollback(final ODatabase oDatabase) {
-    }
-
-    /*
-     * (non-Javadoc)
-     * @see ODatabaseListener#onAfterTxRollback()
-     */
-    @Override
-    public void onAfterTxRollback(final ODatabase oDatabase) {
     }
 
     /*
