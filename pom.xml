@@ -25,7 +25,7 @@
         <commonslang.version>2.6</commonslang.version>
         <orientdb-client.version>3.0.23</orientdb-client.version>
         <jmh.version>1.21</jmh.version>
-        <jackson.version>2.10.0</jackson.version>
+        <jackson.version>2.12.6.1</jackson.version>
         <json-path-assert.version>2.2.0</json-path-assert.version>
     </properties>
     <dependencies>
