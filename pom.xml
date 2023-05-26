@@ -21,7 +21,7 @@
         <nohttp.version>0.0.3.RELEASE</nohttp.version>
         <maven-checkstyle-plugin.version>3.0.0</maven-checkstyle-plugin.version>
         <springdata.commons.version>2.2.0.RELEASE</springdata.commons.version>
-        <spring.boot.version>2.0.0.RELEASE</spring.boot.version>
+        <spring.boot.version>2.5.15</spring.boot.version>
         <commonslang.version>2.6</commonslang.version>
         <orientdb-client.version>3.0.23</orientdb-client.version>
         <jmh.version>1.21</jmh.version>
